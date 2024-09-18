@@ -30,7 +30,7 @@ kernel_fn_type = Callable[
 clear_cache = jax._src.dispatch.xla_primitive_callable.cache_clear
 
 
-class StudentTProcess:
+class TP:
     """
     Student-t process regression class
 
