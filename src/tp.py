@@ -407,7 +407,7 @@ class StudentTProcess:
         X_new: jnp.ndarray,
         samples: Optional[Dict[str, jnp.ndarray]] = None,
         n: int = 1,
-        filter_nans: bool = False,
+        filter_nans: bool = True,
         noiseless: bool = False,
         device: Type[jaxlib.xla_extension.Device] = None,
         **kwargs: float
@@ -491,84 +491,43 @@ class StudentTProcess:
 
 
 
+
+
 # if __name__ == "__main__":
-#     from numpyro.distributions import MultivariateNormal
-#     import jax
-#     import jax.numpy as jnp
+#     import numpy as np
+#     import matplotlib.pyplot as plt
 
-#     # 平均ベクトルと共分散行列を3次元に拡張
-#     mean = jnp.zeros((3,))
-#     covariance = jnp.array([[1.0, 0.5, 0.3],
-#                             [0.5, 1.0, 0.4],
-#                             [0.3, 0.4, 1.0]])
+#     # Generate synthetic data
+#     np.random.seed(123)
+#     X = np.linspace(0, 10, 100)[:, None]
+#     y = np.sin(X) + np.random.normal(0, 0.1, X.shape)
 
-#     # MultivariateNormal 分布を定義
-#     dist = MultivariateNormal(mean, covariance)
+#     # Initialize Student-t process regression model
+#     tp_model = StudentTProcess(input_dim=1, kernel="Matern")
 
-#     # 複数サンプルを取得（10個）
-#     samples = dist.sample(jax.random.PRNGKey(1), sample_shape=(10,))
-#     print("Multiple Samples:\n", samples)
+#     # Run HMC to obtain posterior samples for the TP model parameters
+#     rng_key, rng_key_predict = jra.split(jra.PRNGKey(0))
+#     tp_model.fit(rng_key, X, y)
 
-#     # 各サンプルに対する標準偏差を計算
-#     print("axis=0")
-#     print(f"shape: {samples.std(axis=0).shape}")
-#     print(samples.std(axis=0))
-#     print()
-
-#     print("axis=1")
-#     print(f"shape: {samples.std(axis=1).shape}")
-#     print(samples.std(axis=1))
-#     print()
-
-#     print("axis=2")
-#     print(f"shape: {samples.std(axis=2).shape}")
-#     print(samples.std(axis=2))
-#     print()
-
-#     print("axis=-1")
-#     print(f"shape: {samples.std(axis=-1).shape}")
-#     print(samples.std(axis=-1))
-
-
-
-
-
-
-if __name__ == "__main__":
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    # Generate synthetic data
-    np.random.seed(123)
-    X = np.linspace(0, 10, 100)[:, None]
-    y = np.sin(X) + np.random.normal(0, 0.1, X.shape)
-
-    # Initialize Student-t process regression model
-    tp_model = StudentTProcess(input_dim=1, kernel="Matern")
-
-    # Run HMC to obtain posterior samples for the TP model parameters
-    rng_key, rng_key_predict = jra.split(jra.PRNGKey(0))
-    tp_model.fit(rng_key, X, y)
-
-    # Make a prediction on new inputs
-    _, y_sampled = tp_model.predict(rng_key_predict, X, n=1, filter_nans=True)
+#     # Make a prediction on new inputs
+#     _, y_sampled = tp_model.predict(rng_key_predict, X, n=1, filter_nans=True)
 
     
-    # print(y_sampled)
-    # print(y_sampled.shape)
+#     # print(y_sampled)
+#     # print(y_sampled.shape)
 
-    print("axis=0")
-    print(f"shape: {y_sampled.std(axis=0).shape}")
-    print(y_sampled.std(axis=0))
-    print()
-    print("axis=1")
-    print(f"shape: {y_sampled.std(axis=1).shape}")
-    print(y_sampled.std(axis=1))
-    print()
-    print("axis=2")
-    print(f"shape: {y_sampled.std(axis=2).shape}")
-    print(y_sampled.std(axis=2))
-    print()
-    print("axis=-1")
-    print(f"shape: {y_sampled.std(axis=-1).shape}")
-    print(y_sampled.std(axis=-1))
+#     print("axis=0")
+#     print(f"shape: {y_sampled.std(axis=0).shape}")
+#     print(y_sampled.std(axis=0))
+#     print()
+#     print("axis=1")
+#     print(f"shape: {y_sampled.std(axis=1).shape}")
+#     print(y_sampled.std(axis=1))
+#     print()
+#     print("axis=2")
+#     print(f"shape: {y_sampled.std(axis=2).shape}")
+#     print(y_sampled.std(axis=2))
+#     print()
+#     print("axis=-1")
+#     print(f"shape: {y_sampled.std(axis=-1).shape}")
+#     print(y_sampled.std(axis=-1))
