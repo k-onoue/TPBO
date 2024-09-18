@@ -110,7 +110,7 @@ if __name__ == "__main__":
     # Example experiment settings
     experiment_settings = {
         "search_space": np.array([[-10], [10]]),  # 1D search space example
-        "num_iterations": 10,  # Number of optimization iterations
+        "num_iterations": 50,  # Number of optimization iterations
         "objective_function": objective_function,  # Actual objective function
         "acquisition": {  # Acquisition function settings
             "num_samples": 10,  # Number of samples for acquisition function
