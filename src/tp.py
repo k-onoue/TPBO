@@ -315,11 +315,6 @@ class StudentTProcess:
         # Draw samples from the predictive Multivariate Student-t distribution
         df = params["df"] + self.X_train.shape[0]
 
-        # # Use numpyro's MultivariateStudentT
-        # y_samples = dist.MultivariateStudentT(
-        #     df=df, loc=y_mean, covariance_matrix=cov
-        # ).sample(rng_key, sample_shape=(n,))
-
         y_samples = dist.MultivariateStudentT(
             df=df, loc=y_mean, scale_tril=scale_tril
         ).sample(rng_key, sample_shape=(n,))
