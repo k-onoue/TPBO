@@ -1,12 +1,10 @@
 """
-tp.py
-=====
+gp.py
+=======
 
-Fully Bayesian implementation of Student-t process regression
+Fully Bayesian implementation of Gaussian process regression
 
-Revised to match the specified generative process.
-
-Created by [Your Name] (email: your.email@example.com)
+Created by Maxim Ziatdinov (email: maxim.ziatdinov@ai4microscopy.com)
 """
 
 import warnings
@@ -23,16 +21,14 @@ from numpyro.infer import MCMC, NUTS, init_to_median, Predictive
 from gpax.kernels import get_kernel
 from gpax.utils import split_in_batches
 
-kernel_fn_type = Callable[
-    [jnp.ndarray, jnp.ndarray, Dict[str, jnp.ndarray], jnp.ndarray], jnp.ndarray
-]
+kernel_fn_type = Callable[[jnp.ndarray, jnp.ndarray, Dict[str, jnp.ndarray], jnp.ndarray], jnp.ndarray]
 
 clear_cache = jax._src.dispatch.xla_primitive_callable.cache_clear
 
 
-class TP:
+class ExactGP:
     """
-    Student-t process regression class
+    Gaussian process class
 
     Args:
         input_dim:
@@ -51,38 +47,62 @@ class TP:
         lengthscale_prior_dist:
             Optional custom prior distribution over kernel lengthscale.
             Defaults to LogNormal(0, 1).
-        df_prior_dist:
-            Prior distribution over degrees of freedom for the Student-t process.
-            Defaults to Exponential(0.1) shifted to ensure df > 2.
 
     Examples:
 
-        Student-t Process Regression
+        Regular GP for sparse noisy obervations
 
         >>> # Get random number generator keys for training and prediction
         >>> rng_key, rng_key_predict = gpax.utils.get_keys()
         >>> # Initialize model
-        >>> tp_model = gpax.StudentTProcess(input_dim=1, kernel='Matern')
-        >>> # Run HMC to obtain posterior samples for the TP model parameters
-        >>> tp_model.fit(rng_key, X, y)  # X and y are arrays with dimensions (n, 1) and (n,)
-        >>> # Make a prediction on new inputs
-        >>> y_pred, y_samples = tp_model.predict(rng_key_predict, X_new)
+        >>> gp_model = gpax.ExactGP(input_dim=1, kernel='Matern')
+        >>> # Run HMC to obtain posterior samples for the GP model parameters
+        >>> gp_model.fit(rng_key, X, y)  # X and y are arrays with dimensions (n, 1) and (n,)
+        >>> # Make a noiseless prediction on new inputs
+        >>> y_pred, y_samples = gp_model.predict(rng_key_predict, X_new, noiseless=True)
 
+        GP with custom noise prior
+
+        >>> gp_model = gpax.ExactGP(
+        >>>     input_dim=1, kernel='RBF',
+        >>>     noise_prior_dist = numpyro.distributions.HalfNormal(.1)
+        >>> )
+        >>> # Run HMC to obtain posterior samples for the GP model parameters
+        >>> gp_model.fit(rng_key, X, y)  # X and y are arrays with dimensions (n, 1) and (n,)
+        >>> # Make a noiselsess prediction on new inputs
+        >>> y_pred, y_samples = gp_model.predict(rng_key_predict, X_new, noiseless=True)
+
+        GP with custom probabilistic model as its mean function
+
+        >>> # Define a deterministic mean function
+        >>> mean_fn = lambda x, param: param["a"]*x + param["b"]
+        >>>
+        >>> # Define priors over the mean function parameters (to make it probabilistic)
+        >>> def mean_fn_prior():
+        >>>     a = numpyro.sample("a", numpyro.distributions.Normal(3, 1))
+        >>>     b = numpyro.sample("b", numpyro.distributions.Normal(0, 1))
+        >>>     return {"a": a, "b": b}
+        >>>
+        >>> # Initialize structural GP model
+        >>> sgp_model = gpax.ExactGP(
+                input_dim=1, kernel='Matern',
+                mean_fn=mean_fn, mean_fn_prior=mean_fn_prior)
+        >>> # Run HMC to obtain posterior samples for the GP model parameters
+        >>> sgp_model.fit(rng_key, X, y)  # X and y are numpy arrays with dimensions (n, d) and (n,)
+        >>> # Make a noiselsess prediction on new inputs
+        >>> y_pred, y_samples = gp_model.predict(rng_key_predict, X_new, noiseless=True)
     """
 
     def __init__(
         self,
         input_dim: int,
         kernel: Union[str, kernel_fn_type],
-        mean_fn: Optional[
-            Callable[[jnp.ndarray, Dict[str, jnp.ndarray]], jnp.ndarray]
-        ] = None,
+        mean_fn: Optional[Callable[[jnp.ndarray, Dict[str, jnp.ndarray]], jnp.ndarray]] = None,
         kernel_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         mean_fn_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         noise_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         noise_prior_dist: Optional[dist.Distribution] = None,
         lengthscale_prior_dist: Optional[dist.Distribution] = None,
-        df_prior_dist: Optional[dist.Distribution] = None,
     ) -> None:
         clear_cache()
         if noise_prior is not None:
@@ -110,51 +130,36 @@ class TP:
         self.noise_prior = noise_prior
         self.noise_prior_dist = noise_prior_dist
         self.lengthscale_prior_dist = lengthscale_prior_dist
-        self.df_prior_dist = df_prior_dist or dist.Exponential(0.1)
         self.X_train = None
         self.y_train = None
         self.mcmc = None
 
     def model(self, X: jnp.ndarray, y: jnp.ndarray = None, **kwargs: float) -> None:
-        """Student-t process probabilistic model with inputs X and targets y"""
+        """GP probabilistic model with inputs X and targets y"""
         # Initialize mean function at zeros
         f_loc = jnp.zeros(X.shape[0])
-
         # Sample kernel parameters
         if self.kernel_prior:
             kernel_params = self.kernel_prior()
         else:
             kernel_params = self._sample_kernel_params()
-
         # Sample noise
-        if self.noise_prior:  # this will be removed in future releases
+        if self.noise_prior:  # this will be removed in the future releases
             noise = self.noise_prior()
         else:
             noise = self._sample_noise()
-
-        # Sample degrees of freedom (nu > 2)
-        df = numpyro.sample("df", self.df_prior_dist) + 2.0
-
         # Add mean function (if any)
         if self.mean_fn is not None:
             args = [X]
             if self.mean_fn_prior is not None:
                 args += [self.mean_fn_prior()]
             f_loc += self.mean_fn(*args).squeeze()
-
-        # Compute kernel matrix
+        # compute kernel
         k = self.kernel(X, X, kernel_params, noise, **kwargs)
-
-        # Sample scaling variable r ~ InverseGamma(df / 2, 0.5)
-        r = numpyro.sample("r", dist.InverseGamma(df / 2.0, 0.5))
-
-        # Adjust covariance matrix
-        cov = k * r * (df - 2)
-
-        # Sample y according to the Multivariate Normal with scaled covariance
+        # sample y according to the standard Gaussian process formula
         numpyro.sample(
             "y",
-            dist.MultivariateNormal(loc=f_loc, covariance_matrix=cov),
+            dist.MultivariateNormal(loc=f_loc, covariance_matrix=k),
             obs=y,
         )
 
@@ -173,13 +178,13 @@ class TP:
         **kwargs: float
     ) -> None:
         """
-        Run Hamiltonian Monte Carlo to infer the Student-t process parameters
+        Run Hamiltonian Monter Carlo to infer the GP parameters
 
         Args:
             rng_key: random number generator key
             X: 2D feature vector
             y: 1D target vector
-            num_warmup: number of HMC warmup steps
+            num_warmup: number of HMC warmup states
             num_samples: number of HMC samples
             num_chains: number of HMC chains
             chain_method: 'sequential', 'parallel' or 'vectorized'
@@ -188,8 +193,9 @@ class TP:
             device:
                 optionally specify a cpu or gpu device on which to run the inference;
                 e.g., ``device=jax.devices("cpu")[0]``
-            **kwargs:
-                Additional arguments passed to the kernel function, such as `jitter`
+            **jitter:
+                Small positive term added to the diagonal part of a covariance
+                matrix for numerical stability (Default: 1e-6)
         """
         X, y = self._set_data(X, y)
         if device:
@@ -229,9 +235,7 @@ class TP:
             length_dist = self.lengthscale_prior_dist
         else:
             length_dist = dist.LogNormal(0.0, 1.0)
-        with numpyro.plate(
-            "ard", self.kernel_dim
-        ):  # allows using ARD kernel for kernel_dim > 1
+        with numpyro.plate("ard", self.kernel_dim):  # allows using ARD kernel for kernel_dim > 1
             length = numpyro.sample("k_length", length_dist)
         if output_scale:
             scale = numpyro.sample("k_scale", dist.LogNormal(0.0, 1.0))
@@ -239,11 +243,7 @@ class TP:
             scale = numpyro.deterministic("k_scale", jnp.array(1.0))
         if self.kernel_name == "Periodic":
             period = numpyro.sample("period", dist.LogNormal(0.0, 1.0))
-        kernel_params = {
-            "k_length": length,
-            "k_scale": scale,
-            "period": period if self.kernel_name == "Periodic" else None,
-        }
+        kernel_params = {"k_length": length, "k_scale": scale, "period": period if self.kernel_name == "Periodic" else None}
         return kernel_params
 
     def get_samples(self, chain_dim: bool = False) -> Dict[str, jnp.ndarray]:
@@ -251,15 +251,11 @@ class TP:
         return self.mcmc.get_samples(group_by_chain=chain_dim)
 
     def get_mvn_posterior(
-        self,
-        X_new: jnp.ndarray,
-        params: Dict[str, jnp.ndarray],
-        noiseless: bool = False,
-        **kwargs: float
+        self, X_new: jnp.ndarray, params: Dict[str, jnp.ndarray], noiseless: bool = False, **kwargs: float
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
-        Returns parameters (mean and cov) of the predictive Multivariate Student-t posterior
-        for a single sample of TP parameters
+        Returns parameters (mean and cov) of multivariate normal posterior
+        for a single sample of GP parameters
         """
         noise = params["noise"]
         noise_p = noise * (1 - jnp.array(noiseless, int))
@@ -267,33 +263,17 @@ class TP:
         if self.mean_fn is not None:
             args = [self.X_train, params] if self.mean_fn_prior else [self.X_train]
             y_residual -= self.mean_fn(*args).squeeze()
-
-        # Degrees of freedom
-        df = params["df"] + self.X_train.shape[0]
-
-        # Compute kernel matrices
-        k_XX = self.kernel(self.X_train, self.X_train, params, noise, **kwargs)
-        k_pX = self.kernel(X_new, self.X_train, params, jitter=0.0)
+        # compute kernel matrices for train and test data
         k_pp = self.kernel(X_new, X_new, params, noise_p, **kwargs)
-
-        # Compute inverse of k_XX
+        k_pX = self.kernel(X_new, self.X_train, params, jitter=0.0)
+        k_XX = self.kernel(self.X_train, self.X_train, params, noise, **kwargs)
+        # compute the predictive covariance and mean
         K_xx_inv = jnp.linalg.inv(k_XX)
-
-        # Compute predictive mean
+        cov = k_pp - jnp.matmul(k_pX, jnp.matmul(K_xx_inv, jnp.transpose(k_pX)))
         mean = jnp.matmul(k_pX, jnp.matmul(K_xx_inv, y_residual))
-
-        # Compute beta
-        beta = jnp.dot(y_residual, jnp.matmul(K_xx_inv, y_residual))
-
-        # Compute predictive covariance
-        scale = (params["df"] + beta - 2) / (params["df"] + self.X_train.shape[0] - 2)
-        cov = k_pp - jnp.matmul(k_pX, jnp.matmul(K_xx_inv, k_pX.T))
-        cov = cov * scale
-
         if self.mean_fn is not None:
             args = [X_new, params] if self.mean_fn_prior else [X_new]
             mean += self.mean_fn(*args).squeeze()
-
         return mean, cov
 
     def _predict(
@@ -305,21 +285,12 @@ class TP:
         noiseless: bool = False,
         **kwargs: float
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
-        """Prediction with a single sample of TP parameters"""
+        """Prediction with a single sample of GP parameters"""
         # Get the predictive mean and covariance
-        y_mean, cov = self.get_mvn_posterior(X_new, params, noiseless, **kwargs)
-
-        # Compute the Cholesky decomposition of the covariance matrix
-        scale_tril = jnp.linalg.cholesky(cov)
-
-        # Draw samples from the predictive Multivariate Student-t distribution
-        df = params["df"] + self.X_train.shape[0]
-
-        y_samples = dist.MultivariateStudentT(
-            df=df, loc=y_mean, scale_tril=scale_tril
-        ).sample(rng_key, sample_shape=(n,))
-
-        return y_mean, y_samples
+        y_mean, K = self.get_mvn_posterior(X_new, params, noiseless, **kwargs)
+        # draw samples from the posterior predictive for a given set of parameters
+        y_sampled = dist.MultivariateNormal(y_mean, K).sample(rng_key, sample_shape=(n,))
+        return y_mean, y_sampled
 
     def _predict_in_batches(
         self,
@@ -336,16 +307,7 @@ class TP:
         **kwargs: float
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         if predict_fn is None:
-            predict_fn = lambda xi: self.predict(
-                rng_key,
-                xi,
-                samples,
-                n,
-                filter_nans,
-                noiseless,
-                device,
-                **kwargs,
-            )
+            predict_fn = lambda xi: self.predict(rng_key, xi, samples, n, filter_nans, noiseless, device, **kwargs)
 
         def predict_batch(Xi):
             out1, out2 = predict_fn(Xi)
@@ -374,23 +336,13 @@ class TP:
         **kwargs: float
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
-        Make prediction at X_new with sampled TP parameters
-        by splitting the input array into chunks ("batches") and running
+        Make prediction at X_new with sampled GP parameters
+        by spitting the input array into chunks ("batches") and running
         predict_fn (defaults to self.predict) on each of them one-by-one
         to avoid a memory overflow
         """
         y_pred, y_sampled = self._predict_in_batches(
-            rng_key,
-            X_new,
-            batch_size,
-            0,
-            samples,
-            n,
-            filter_nans,
-            predict_fn,
-            noiseless,
-            device,
-            **kwargs,
+            rng_key, X_new, batch_size, 0, samples, n, filter_nans, predict_fn, noiseless, device, **kwargs
         )
         y_pred = jnp.concatenate(y_pred, 0)
         y_sampled = jnp.concatenate(y_sampled, -1)
@@ -402,30 +354,32 @@ class TP:
         X_new: jnp.ndarray,
         samples: Optional[Dict[str, jnp.ndarray]] = None,
         n: int = 1,
-        filter_nans: bool = True,
+        filter_nans: bool = False,
         noiseless: bool = False,
         device: Type[jaxlib.xla_extension.Device] = None,
         **kwargs: float
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
-        Make prediction at X_new points using posterior samples for TP parameters
+        Make prediction at X_new points using posterior samples for GP parameters
 
         Args:
             rng_key: random number generator key
             X_new: new inputs with *(number of points, number of features)* dimensions
-            samples: optional (different) samples with TP parameters
-            n: number of samples from Multivariate Student-t posterior for each HMC sample with TP parameters
+            samples: optional (different) samples with GP parameters
+            n: number of samples from Multivariate Normal posterior for each HMC sample with GP parameters
             filter_nans: filter out samples containing NaN values (if any)
             noiseless:
                 Noise-free prediction. It is set to False by default as new/unseen data is assumed
-                to follow the same distribution as the training data.
+                to follow the same distribution as the training data. Hence, since we introduce a model noise
+                by default for the training data, we also want to include that noise in our prediction.
             device:
                 optionally specify a cpu or gpu device on which to make a prediction;
                 e.g., ```device=jax.devices("gpu")[0]```
-            **kwargs:
-                Additional arguments passed to the kernel function, such as `jitter`
+            **jitter:
+                Small positive term added to the diagonal part of a covariance
+                matrix for numerical stability (Default: 1e-6)
 
-        Returns:
+        Returns
             Center of the mass of sampled means and all the sampled predictions
         """
         X_new = self._set_data(X_new)
@@ -437,9 +391,7 @@ class TP:
             samples = jax.device_put(samples, device)
         num_samples = len(next(iter(samples.values())))
         vmap_args = (jra.split(rng_key, num_samples), samples)
-        predictive = jax.vmap(
-            lambda prms: self._predict(prms[0], X_new, prms[1], n, noiseless, **kwargs)
-        )
+        predictive = jax.vmap(lambda prms: self._predict(prms[0], X_new, prms[1], n, noiseless, **kwargs))
         y_means, y_sampled = predictive(vmap_args)
         if filter_nans:
             # y_sampled_ = [y_i for y_i in y_sampled if not jnp.isnan(y_i).any()]
@@ -453,9 +405,7 @@ class TP:
 
         return y_means.mean(0), y_sampled
 
-    def sample_from_prior(
-        self, rng_key: jnp.ndarray, X: jnp.ndarray, num_samples: int = 10
-    ):
+    def sample_from_prior(self, rng_key: jnp.ndarray, X: jnp.ndarray, num_samples: int = 10):
         """
         Samples from prior predictive distribution at X
         """
@@ -464,9 +414,7 @@ class TP:
         samples = prior_predictive(rng_key, X)
         return samples["y"]
 
-    def _set_data(
-        self, X: jnp.ndarray, y: Optional[jnp.ndarray] = None
-    ) -> Union[Tuple[jnp.ndarray], jnp.ndarray]:
+    def _set_data(self, X: jnp.ndarray, y: Optional[jnp.ndarray] = None) -> Union[Tuple[jnp.ndarray], jnp.ndarray]:
         X = X if X.ndim > 1 else X[:, None]
         if y is not None:
             return X, y.squeeze()
@@ -489,47 +437,3 @@ class TP:
     def _print_summary(self):
         samples = self.get_samples(1)
         numpyro.diagnostics.print_summary(samples)
-
-
-
-
-
-
-# if __name__ == "__main__":
-#     import numpy as np
-#     import matplotlib.pyplot as plt
-
-#     # Generate synthetic data
-#     np.random.seed(123)
-#     X = np.linspace(0, 10, 100)[:, None]
-#     y = np.sin(X) + np.random.normal(0, 0.1, X.shape)
-
-#     # Initialize Student-t process regression model
-#     tp_model = StudentTProcess(input_dim=1, kernel="Matern")
-
-#     # Run HMC to obtain posterior samples for the TP model parameters
-#     rng_key, rng_key_predict = jra.split(jra.PRNGKey(0))
-#     tp_model.fit(rng_key, X, y)
-
-#     # Make a prediction on new inputs
-#     _, y_sampled = tp_model.predict(rng_key_predict, X, n=1, filter_nans=True)
-
-    
-#     # print(y_sampled)
-#     # print(y_sampled.shape)
-
-#     print("axis=0")
-#     print(f"shape: {y_sampled.std(axis=0).shape}")
-#     print(y_sampled.std(axis=0))
-#     print()
-#     print("axis=1")
-#     print(f"shape: {y_sampled.std(axis=1).shape}")
-#     print(y_sampled.std(axis=1))
-#     print()
-#     print("axis=2")
-#     print(f"shape: {y_sampled.std(axis=2).shape}")
-#     print(y_sampled.std(axis=2))
-#     print()
-#     print("axis=-1")
-#     print(f"shape: {y_sampled.std(axis=-1).shape}")
-#     print(y_sampled.std(axis=-1))

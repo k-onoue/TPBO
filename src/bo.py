@@ -2,10 +2,11 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from gpax.acquisition import EI, optimize_acq
-from gpax.models.gp import ExactGP
+# from gpax.models.gp import ExactGP
 from jax import random
 
 from utils_bo import DataTransformer, generate_initial_data
+from gp import ExactGP
 
 # Define the objective function
 def objective_function(x):
@@ -69,6 +70,7 @@ def run_bo(experiment_settings):
             best_f=jnp.min(jnp.array(y_standardized)),
             maximize=acq_settings["maximize"],
             n=acq_settings["num_samples"],
+            filter_nans=True,
         )
 
         X_next_normalized = X_next_normalized.reshape(1, search_space.shape[1])  # Ensure shape is (1, search_space.shape[1])
