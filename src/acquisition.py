@@ -32,15 +32,20 @@ def _compute_mean_and_var_tp(
     return mean, var, df
 
 
-def UCB_TP(rng_key: jnp.ndarray, model: Type[TP],
-           X: jnp.ndarray, beta: float = .25,
-           maximize: bool = False, n: int = 1,
-           noiseless: bool = False,
-           penalty: Optional[str] = None,
-           recent_points: jnp.ndarray = None,
-           grid_indices: jnp.ndarray = None,
-           penalty_factor: float = 1.0,
-           **kwargs) -> jnp.ndarray:
+def UCB_TP(
+    rng_key: jnp.ndarray,
+    model: Type[TP],
+    X: jnp.ndarray,
+    beta: float = 0.25,
+    maximize: bool = False,
+    n: int = 1,
+    noiseless: bool = False,
+    penalty: Optional[str] = None,
+    recent_points: jnp.ndarray = None,
+    grid_indices: jnp.ndarray = None,
+    penalty_factor: float = 1.0,
+    **kwargs
+) -> jnp.ndarray:
     r"""
     Upper confidence bound for Student-t Process
 
@@ -85,7 +90,9 @@ def UCB_TP(rng_key: jnp.ndarray, model: Type[TP],
     # Compute predictive mean and variance (moments) for the Student-t process
     mean, var, df = _compute_mean_and_var_tp(rng_key, model, X, n, noiseless, **kwargs)
 
-    def ucb_tp(moments: Tuple[jnp.ndarray, jnp.ndarray], beta: float, df: float, maximize: bool = False) -> jnp.ndarray:
+    def ucb_tp(
+        moments: Tuple[jnp.ndarray, jnp.ndarray], beta: float, df: float, maximize: bool = False
+    ) -> jnp.ndarray:
         """
         Inner function for computing UCB with Student-t Process adjustments
 
@@ -128,19 +135,24 @@ def UCB_TP(rng_key: jnp.ndarray, model: Type[TP],
     return acq
 
 
-def EI_TP(rng_key: jnp.ndarray, model: Type[TP],
-          X: jnp.ndarray, best_f: float = None,
-          maximize: bool = False, n: int = 1,
-          noiseless: bool = False,
-          penalty: Optional[str] = None,
-          recent_points: jnp.ndarray = None,
-          grid_indices: jnp.ndarray = None,
-          penalty_factor: float = 1.0,
-          **kwargs) -> jnp.ndarray:
+def EI_TP(
+    rng_key: jnp.ndarray,
+    model: Type[TP],
+    X: jnp.ndarray,
+    best_f: float = None,
+    maximize: bool = False,
+    n: int = 1,
+    noiseless: bool = False,
+    penalty: Optional[str] = None,
+    recent_points: jnp.ndarray = None,
+    grid_indices: jnp.ndarray = None,
+    penalty_factor: float = 1.0,
+    **kwargs
+) -> jnp.ndarray:
     r"""
     Student-t Process Expected Improvement (EI)
 
-    This function implements the Expected Improvement acquisition function 
+    This function implements the Expected Improvement acquisition function
     for a Student-t process surrogate model.
 
     Args:
@@ -168,10 +180,9 @@ def EI_TP(rng_key: jnp.ndarray, model: Type[TP],
     # Compute predictive mean, variance, and degrees of freedom from the TP model
     mean, var, df = _compute_mean_and_var_tp(rng_key, model, X, n, noiseless, **kwargs)
 
-    def ei_tp(moments: Tuple[jnp.ndarray, jnp.ndarray, float],
-              best_f: float = None,
-              maximize: bool = False,
-              **kwargs) -> jnp.ndarray:
+    def ei_tp(
+        moments: Tuple[jnp.ndarray, jnp.ndarray, float], best_f: float = None, maximize: bool = False, **kwargs
+    ) -> jnp.ndarray:
         r"""
         Inner function for computing Expected Improvement (EI) for a Student-t Process
 
@@ -187,29 +198,29 @@ def EI_TP(rng_key: jnp.ndarray, model: Type[TP],
             moments: Tuple containing the predictive mean, variance, and degrees of freedom (df).
             best_f: Best function value observed so far.
             maximize: If True, assumes that BO is solving maximization problem.
-        
+
         Returns:
             Expected Improvement (EI) acquisition function values.
         """
         mean, var, df = moments
         sigma = jnp.sqrt(var)
-        
+
         if best_f is None:
             best_f = mean.max() if maximize else mean.min()
-        
+
         # Compute z = (best_f - mean) / sigma
         z = (best_f - mean) / sigma
         if maximize:
             z = -z
-        
+
         # Standard Student-t distribution CDF and PDF
         student_t = dist.StudentT(df)
         phi_s = jnp.exp(student_t.log_prob(z))  # PDF
-        Phi_s = student_t.cdf(z)                # CDF
+        Phi_s = student_t.cdf(z)  # CDF
 
         # Compute EI using the Student-t process formula
-        ei_value = (best_f - mean) * Phi_s + (df / (df - 1)) * (1 + (z ** 2) / df) * sigma * phi_s
-        
+        ei_value = (best_f - mean) * Phi_s + (df / (df - 1)) * (1 + (z**2) / df) * sigma * phi_s
+
         return ei_value
 
     # Compute EI for Student-t process
@@ -221,19 +232,25 @@ def EI_TP(rng_key: jnp.ndarray, model: Type[TP],
     return acq
 
 
-def POI_TP(rng_key: jnp.ndarray, model: Type[TP],
-           X: jnp.ndarray, best_f: float = None,
-           xi: float = 0.01, maximize: bool = False,
-           n: int = 1, noiseless: bool = False,
-           penalty: Optional[str] = None,
-           recent_points: jnp.ndarray = None,
-           grid_indices: jnp.ndarray = None,
-           penalty_factor: float = 1.0,
-           **kwargs) -> jnp.ndarray:
+def POI_TP(
+    rng_key: jnp.ndarray,
+    model: Type[TP],
+    X: jnp.ndarray,
+    best_f: float = None,
+    xi: float = 0.01,
+    maximize: bool = False,
+    n: int = 1,
+    noiseless: bool = False,
+    penalty: Optional[str] = None,
+    recent_points: jnp.ndarray = None,
+    grid_indices: jnp.ndarray = None,
+    penalty_factor: float = 1.0,
+    **kwargs
+) -> jnp.ndarray:
     r"""
     Student-t Process Probability of Improvement (POI)
 
-    This function implements the Probability of Improvement acquisition function 
+    This function implements the Probability of Improvement acquisition function
     for a Student-t process surrogate model.
 
     Args:
@@ -263,9 +280,13 @@ def POI_TP(rng_key: jnp.ndarray, model: Type[TP],
     mean, var, df = _compute_mean_and_var_tp(rng_key, model, X, n, noiseless, **kwargs)
 
     # Inner function for Student-t Process POI
-    def poi_tp(moments: Tuple[jnp.ndarray, jnp.ndarray, float],
-               best_f: float = None, xi: float = 0.01,
-               maximize: bool = False, **kwargs) -> jnp.ndarray:
+    def poi_tp(
+        moments: Tuple[jnp.ndarray, jnp.ndarray, float],
+        best_f: float = None,
+        xi: float = 0.01,
+        maximize: bool = False,
+        **kwargs
+    ) -> jnp.ndarray:
         r"""
         Student-t Process Probability of Improvement (PI)
 
@@ -288,15 +309,15 @@ def POI_TP(rng_key: jnp.ndarray, model: Type[TP],
         """
         mean, var, df = moments
         sigma = jnp.sqrt(var)
-        
+
         if best_f is None:
             best_f = mean.max() if maximize else mean.min()
-        
+
         # Compute z = (mean - best_f - xi) / sigma
         z = (mean - best_f - xi) / sigma
         if not maximize:
             z = -z
-        
+
         # Student-t distribution CDF (Phi_s)
         student_t = dist.StudentT(df)
         return student_t.cdf(z)

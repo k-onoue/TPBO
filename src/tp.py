@@ -557,6 +557,7 @@ class TP_v2:
         self.X_train = None
         self.y_train = None
         self.mcmc = None
+        self.beta = None
 
     def model(self, X: jnp.ndarray, y: jnp.ndarray = None, **kwargs: float) -> None:
         """Student-t process probabilistic model with inputs X and targets y"""
@@ -696,11 +697,17 @@ class TP_v2:
         return self.mcmc.get_samples(group_by_chain=chain_dim)
 
     def get_mvt_posterior(
-        self, X_new: jnp.ndarray, params: Dict[str, jnp.ndarray], **kwargs: float
+        self, X_new: jnp.ndarray, params: Dict[str, jnp.ndarray], nu_prime: float = None, **kwargs: float
     ) -> Tuple[jnp.ndarray, jnp.ndarray, float]:
         """
         Returns parameters (mean, cov, df) of the predictive Multivariate Student-t posterior
         for a single sample of TP parameters, including observation noise.
+
+        Args:
+            X_new: New input data
+            params: Dictionary of model parameters
+            nu_prime: Custom degrees of freedom (nu'), optional. If not provided, use the model's current degrees of freedom.
+            **kwargs: Additional arguments
         """
         y_train = self.y_train
         X_train = self.X_train
@@ -738,7 +745,7 @@ class TP_v2:
         K_11_inv = jnp.linalg.inv(K_11_with_noise)
 
         # Compute beta
-        beta = jnp.dot(y_centered.T, jnp.matmul(K_11_inv, y_centered))
+        self.beta = jnp.dot(y_centered.T, jnp.matmul(K_11_inv, y_centered))
 
         # Compute predictive mean
         mean = jnp.matmul(K_12.T, jnp.matmul(K_11_inv, y_centered)) + phi_new
@@ -748,20 +755,39 @@ class TP_v2:
 
         # Scale covariance
         n1 = X_train.shape[0]
-        scaling_factor = (df + beta - 2) / (df + n1 - 2)
+        scaling_factor = (df + self.beta - 2) / (df + n1 - 2)
         cov = cov * scaling_factor
 
-        # Degrees of freedom for the predictive distribution
-        df_pred = df + n1
+        # Use custom degrees of freedom if provided
+        df_pred = (nu_prime if nu_prime is not None else df) + n1
 
         return mean, cov, df_pred
 
     def _predict(
-        self, rng_key: jnp.ndarray, X_new: jnp.ndarray, params: Dict[str, jnp.ndarray], n: int, **kwargs: float
+        self,
+        rng_key: jnp.ndarray,
+        X_new: jnp.ndarray,
+        params: Dict[str, jnp.ndarray],
+        n: int,
+        nu_prime: float = None,
+        **kwargs: float
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
-        """Prediction with a single sample of TP parameters"""
-        # Get the predictive mean, covariance, and degrees of freedom
-        y_mean, cov, df_pred = self.get_mvt_posterior(X_new, params, **kwargs)
+        """Prediction with a single sample of TP parameters
+
+        Args:
+            rng_key: Random number generator key
+            X_new: New inputs
+            params: Dictionary of model parameters
+            n: Number of samples from Multivariate Student-t posterior
+            nu_prime: Custom degrees of freedom (nu'), optional
+            **kwargs: Additional arguments
+
+        Returns:
+            y_mean: Predictive mean
+            y_samples: Sampled predictions
+        """
+        # Get the predictive mean, covariance, and custom degrees of freedom
+        y_mean, cov, df_pred = self.get_mvt_posterior(X_new, params, nu_prime=nu_prime, **kwargs)
 
         # Compute the Cholesky decomposition of the covariance matrix
         scale_tril = jnp.linalg.cholesky(cov)
@@ -779,6 +805,7 @@ class TP_v2:
         X_new: jnp.ndarray,
         samples: Optional[Dict[str, jnp.ndarray]] = None,
         n: int = 1,
+        nu_prime: float = None,
         filter_nans: bool = False,
         device: Type[jaxlib.xla_extension.Device] = None,
         **kwargs: float
@@ -787,16 +814,14 @@ class TP_v2:
         Make prediction at X_new points using posterior samples for TP parameters
 
         Args:
-            rng_key: random number generator key
-            X_new: new inputs with *(number of points, number of features)* dimensions
-            samples: optional (different) samples with TP parameters
-            n: number of samples from Multivariate Student-t posterior for each HMC sample with TP parameters
-            filter_nans: filter out samples containing NaN values (if any)
-            device:
-                optionally specify a cpu or gpu device on which to make a prediction;
-                e.g., ```device=jax.devices("gpu")[0]```
-            **kwargs:
-                Additional arguments passed to the kernel function, such as `jitter`
+            rng_key: Random number generator key
+            X_new: New inputs with *(number of points, number of features)* dimensions
+            samples: Optional (different) samples with TP parameters
+            n: Number of samples from Multivariate Student-t posterior for each HMC sample with TP parameters
+            nu_prime: Custom degrees of freedom (nu'), optional
+            filter_nans: Filter out samples containing NaN values (if any)
+            device: Optionally specify a cpu or gpu device on which to make a prediction
+            **kwargs: Additional arguments passed to the kernel function, such as `jitter`
 
         Returns:
             Mean predictions and all the sampled predictions
@@ -810,13 +835,10 @@ class TP_v2:
             samples = jax.device_put(samples, device)
         num_samples = len(next(iter(samples.values())))
         vmap_args = (jra.split(rng_key, num_samples), samples)
-        predictive = jax.vmap(lambda prms: self._predict(prms[0], X_new, prms[1], n, **kwargs))
+        predictive = jax.vmap(lambda prms: self._predict(prms[0], X_new, prms[1], n, nu_prime=nu_prime, **kwargs))
         y_means, y_sampled = predictive(vmap_args)
         if filter_nans:
-            # y_sampled_ = [y_i for y_i in y_sampled if not jnp.isnan(y_i).any()]
-            # y_sampled = jnp.array(y_sampled_)
 
-            # Use JAX-compatible filtering for NaN values
             def filter_out_nans(y_sample):
                 return jnp.where(jnp.isnan(y_sample).any(), jnp.zeros_like(y_sample), y_sample)
 
