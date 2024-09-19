@@ -10,6 +10,12 @@ from _import_from_src import DataTransformer
 from _import_from_src import ExactGP, TP_v2
 
 
+def set_seed(seed):
+    """
+    Set the random seed for reproducibility.
+    """
+    np.random.seed(seed)
+
 # Helper function to initialize data
 def initialize_data(objective_function, search_space, initial_sample_size, data_transformer):
     """
@@ -35,6 +41,7 @@ def initialize_surrogate_model(model_class, surrogate_settings, X_normalized, y_
     surrogate_model.fit(rng_key_1, jnp.array(X_normalized), jnp.array(y_standardized))
     return surrogate_model
 
+
 # Helper function to optimize acquisition function
 def optimize_acquisition_function(rng_key, surrogate_model, acq_settings, lb_normalized, ub_normalized, y_standardized):
     """
@@ -58,6 +65,7 @@ def optimize_acquisition_function(rng_key, surrogate_model, acq_settings, lb_nor
     )
     return X_next_normalized
 
+
 # Helper function to update model with new data
 def update_surrogate_model(surrogate_model, rng_key_1, X_history, y_history, data_transformer):
     """
@@ -66,6 +74,7 @@ def update_surrogate_model(surrogate_model, rng_key_1, X_history, y_history, dat
     X_transformed, y_transformed = data_transformer.apply_transformation(X_history, y_history)
     surrogate_model.fit(rng_key_1, jnp.array(X_transformed), jnp.array(y_transformed))
     return surrogate_model
+
 
 # Main Bayesian Optimization function
 def run_bo(experiment_settings):
@@ -84,6 +93,8 @@ def run_bo(experiment_settings):
     surrogate_settings = experiment_settings["surrogate"]
     model_class = surrogate_settings["model_class"]  # Model class passed through settings
     seed = experiment_settings["seed"]
+
+    set_seed(seed)
 
     # Step 3: Initialize data and GP model
     data_transformer = DataTransformer(search_space, surrogate_settings)
@@ -119,7 +130,6 @@ def run_bo(experiment_settings):
 
     logging.info("Completed BO loop.")
     return X_history, y_history
-
 
 
 # Main Bayesian Optimization function

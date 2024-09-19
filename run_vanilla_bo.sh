@@ -5,18 +5,18 @@ CPUS_PER_TASK=4       # Number of CPUs per task
 PARTITION="gpu_short" # Partition name
 TIME="4:00:00"        # Maximum execution time
 
-# Create results directory if it doesn't exist
+# Create results and logs directories if they don't exist
 mkdir -p results/
 mkdir -p logs/
 
 # Objectives and acquisitions to test
 OBJECTIVES=("SinusoidaSynthetic" "BraninHoo" "Hartmann6")
 ACQUISITIONS=("UCB" "POI" "EI")
-SURROGATES=("GP" "TP") # Add GP and TP for different surrogate models
+SURROGATES=("GP" "TP")  # Add GP and TP for different surrogate models
 
 # Params
-SEED = 0
-ITER = 500
+SEED=0  # No space around '='
+ITER=500  # No space around '='
 
 # Overwrite config.ini file
 config_file="config.ini"
@@ -27,7 +27,7 @@ data_dir = %(project_dir)s/data
 results_dir = %(project_dir)s/results
 logs_dir = %(project_dir)s/logs"
 
-# Overwrite config.ini file
+# Overwrite config.ini file only if necessary
 echo "$config_content" > $config_file
 
 # Confirm the overwrite

@@ -39,7 +39,7 @@ def parse_args():
         "--seed",
         type=int,
         default=0,
-        help="Random seed for reproducibility",
+        help="Random seed for reproducibility. Default is 0.",
     )
     parser.add_argument(
         "--objective",
@@ -69,7 +69,9 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    warnings.filterwarnings("ignore")
+    # Ignore specific warnings (if known) instead of all warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+
     name = __file__.split("/")[-1].strip(".py")
 
     # Parse arguments
@@ -122,6 +124,8 @@ if __name__ == "__main__":
     logging.info(f"{y_history}")
 
     # The final result is in X_history and y_history, containing all evaluated points and their original function values.
-    optimal_index = np.argmin(y_history)
+    if is_maximize:
+        optimal_index = np.argmax(y_history)
+
     logging.info(f"Optimal X: {X_history[optimal_index]}")
     logging.info(f"Optimal y: {y_history[optimal_index]}")
