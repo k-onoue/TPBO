@@ -7,7 +7,7 @@ from gpax.utils import enable_x64, get_keys
 
 from _components import run_bo
 from _import_from_src import LOG_DIR
-from _import_from_src import ExactGP, TP
+from _import_from_src import ExactGP, TP_v1, TP_v2
 from _import_from_src import SinusoidaSynthetic, BraninHoo, Hartmann6
 from _import_from_src import set_logger
 
@@ -19,7 +19,9 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore")
     name = __file__.split("/")[-1].strip(".py")
 
-    objective_function = SinusoidaSynthetic()
+    # objective_function = SinusoidaSynthetic()
+    # objective_function = BraninHoo()
+    objective_function = Hartmann6()
     search_space = objective_function.search_space
     is_maximize = objective_function.is_maximize
 

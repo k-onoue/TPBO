@@ -96,7 +96,7 @@ class Hartmann6:
         ValueError: If the input array is not two-dimensional or does not have exactly 6 features per data point.
     """
     def __init__(self):
-        self.search_space = np.array([[0, 1]] * 6)
+        self.search_space = np.array([[0] * 6, [1] * 6])
         self.is_maximize = False
     
     def __call__(self, x: np.ndarray) -> np.ndarray:

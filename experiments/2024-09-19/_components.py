@@ -8,6 +8,7 @@ from gpax.utils import enable_x64, get_keys
 from _import_from_src import generate_initial_data
 from _import_from_src import DataTransformer
 
+
 # Helper function to initialize data
 def initialize_data(objective_function, search_space, initial_sample_size, data_transformer):
     """
@@ -38,6 +39,10 @@ def optimize_acquisition_function(rng_key, surrogate_model, acq_settings, lb_nor
     """
     Optimize the acquisition function to find the next point.
     """
+    if lb_normalized.shape[1] != 1:
+        lb_normalized = lb_normalized.squeeze()
+        ub_normalized = ub_normalized.squeeze()
+
     X_next_normalized = optimize_acq(
         rng_key,
         surrogate_model,
