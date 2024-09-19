@@ -36,6 +36,12 @@ acquisition_dict = {
 def parse_args():
     parser = argparse.ArgumentParser(description="Bayesian Optimization Experiment")
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed for reproducibility",
+    )
+    parser.add_argument(
         "--objective",
         choices=objective_dict.keys(),
         required=True,
@@ -69,6 +75,9 @@ if __name__ == "__main__":
     # Parse arguments
     args = parse_args()
 
+    # set random seed
+    seed = args.seed
+
     # Set objective function and acquisition function based on user input
     objective_function = objective_dict[args.objective]()
     acquisition_function = acquisition_dict[args.acquisition][args.surrogate]
@@ -80,7 +89,7 @@ if __name__ == "__main__":
     settings = {
         "name": f"{name}_{args.objective}_{args.surrogate}_{args.acquisition}",  # Experiment name
         "is_x64": False,  # Use 64-bit precision
-        "seed": 0,  # Random seed
+        "seed": seed,  # Random seed
         "search_space": search_space,  # 1D search space example
         "num_iterations": args.iterations,  # Number of optimization iterations
         "initial_sample_size": 10,  # Number of initial samples
