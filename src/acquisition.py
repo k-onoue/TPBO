@@ -6,12 +6,10 @@ Base acquisition functions for Student-t process surrogate models.
 
 from typing import Type, Optional, Tuple
 
-import jax
 import jax.numpy as jnp
 import numpy as onp
 import numpyro.distributions as dist
 from gpax.acquisition.acquisition import _compute_penalties
-from gpax.utils import get_keys
 
 # from .tp import TP_v1 as TP
 from .tp import TP_v2 as TP
@@ -223,10 +221,90 @@ def EI_TP(rng_key: jnp.ndarray, model: Type[TP],
     return acq
 
 
+def POI_TP(rng_key: jnp.ndarray, model: Type[TP],
+           X: jnp.ndarray, best_f: float = None,
+           xi: float = 0.01, maximize: bool = False,
+           n: int = 1, noiseless: bool = False,
+           penalty: Optional[str] = None,
+           recent_points: jnp.ndarray = None,
+           grid_indices: jnp.ndarray = None,
+           penalty_factor: float = 1.0,
+           **kwargs) -> jnp.ndarray:
+    r"""
+    Student-t Process Probability of Improvement (POI)
 
+    This function implements the Probability of Improvement acquisition function 
+    for a Student-t process surrogate model.
 
+    Args:
+        rng_key: JAX random number generator key
+        model: trained Student-t process model
+        X: new inputs
+        best_f: Best function value observed so far.
+        xi: Exploration-exploitation trade-off parameter (Defaults to 0.01).
+        maximize: If True, assumes that BO is solving maximization problem.
+        n: number of samples drawn from each predictive distribution.
+        noiseless: Noise-free prediction. Defaults to False.
+        penalty: Optional penalty applied to discourage re-evaluation near recent points.
+        recent_points: An array of recently visited points.
+        grid_indices: Grid indices of data points in X array for penalty term calculation.
+        penalty_factor: Penalty factor applied to acquisition values.
+        **kwargs: Additional arguments passed to the kernel function.
 
+    Returns:
+        Acquisition function values.
+    """
+    if penalty and not isinstance(recent_points, (onp.ndarray, jnp.ndarray)):
+        raise ValueError("Please provide an array of recently visited points")
 
+    X = X[:, None] if X.ndim < 2 else X
 
+    # Compute predictive mean, variance, and degrees of freedom from the TP model
+    mean, var, df = _compute_mean_and_var_tp(rng_key, model, X, n, noiseless, **kwargs)
 
+    # Inner function for Student-t Process POI
+    def poi_tp(moments: Tuple[jnp.ndarray, jnp.ndarray, float],
+               best_f: float = None, xi: float = 0.01,
+               maximize: bool = False, **kwargs) -> jnp.ndarray:
+        r"""
+        Student-t Process Probability of Improvement (PI)
 
+        PI(x) = \Phi_s\left(\frac{\mu(x) - f^+ - \xi}{\sigma(x)}\right)
+
+        where:
+        - \(\mu(x)\) is the predictive mean.
+        - \(\sigma(x)\) is the predictive standard deviation.
+        - \(\nu\) is the degrees of freedom from the Student-t process.
+        - \(\hat{y}\) is the best known function value.
+
+        Args:
+            moments: Tuple containing the predictive mean, variance, and degrees of freedom (df).
+            best_f: Best function value observed so far.
+            xi: Exploration-exploitation trade-off parameter (Defaults to 0.01).
+            maximize: If True, assumes that BO is solving maximization problem.
+
+        Returns:
+            Probability of Improvement (PI) acquisition function values.
+        """
+        mean, var, df = moments
+        sigma = jnp.sqrt(var)
+        
+        if best_f is None:
+            best_f = mean.max() if maximize else mean.min()
+        
+        # Compute z = (mean - best_f - xi) / sigma
+        z = (mean - best_f - xi) / sigma
+        if not maximize:
+            z = -z
+        
+        # Student-t distribution CDF (Phi_s)
+        student_t = dist.StudentT(df)
+        return student_t.cdf(z)
+
+    # Compute PI for Student-t process
+    acq = poi_tp((mean, var, df), best_f, xi, maximize)
+
+    if penalty:
+        acq -= _compute_penalties(X, recent_points, penalty, penalty_factor, grid_indices)
+
+    return acq
