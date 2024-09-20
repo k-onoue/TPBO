@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     # Example experiment settings
     settings = {
-        "name": f"{name}_{args.objective}_{args.surrogate}_{args.acquisition}_seed[{seed}]",  # Experiment name
+        "name": f"{name}_{args.objective}_{args.surrogate}_{args.acquisition}_seed{seed}",  # Experiment name
         "is_x64": False,  # Use 64-bit precision
         "seed": seed,  # Random seed
         "search_space": search_space,  # 1D search space example

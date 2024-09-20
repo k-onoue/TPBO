@@ -46,8 +46,8 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
             mkdir -p "logs/${EXPERIMENTAL_ID}/train"
 
             # Run each experiment in parallel using sbatch
-            sbatch --job-name="${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed[${SEED}]" \
-                   --output="logs/${EXPERIMENTAL_ID}/train/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed[${SEED}]_%j.log" \
+            sbatch --job-name="${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed${SEED}" \
+                   --output="logs/${EXPERIMENTAL_ID}/train/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed${SEED}_%j.log" \
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
                    --time=$TIME \
