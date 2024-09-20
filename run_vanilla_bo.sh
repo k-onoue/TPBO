@@ -45,9 +45,13 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
             # Create the log directory if it doesn't exist
             mkdir -p "logs/${EXPERIMENTAL_ID}/train"
 
+            # Set up experiment name and log file paths
+            EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed[${SEED}]"
+            LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
+
             # Run each experiment in parallel using sbatch
-            sbatch --job-name="${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed[${SEED}]" \
-                   --output="logs/${EXPERIMENTAL_ID}/train/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed[${SEED}]_%j.log" \
+            sbatch --job-name="${EXPERIMENT_NAME}" \
+                   --output="${LOG_DIR}/${EXPERIMENT_NAME}_%j.log" \
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
                    --time=$TIME \
