@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SLURM Resource configuration
-CPUS_PER_TASK= 56     # Number of CPUs per task
+CPUS_PER_TASK=56     # Number of CPUs per task
 PARTITION="gpu_short" # Partition name
 TIME="4:00:00"        # Maximum execution time
 
