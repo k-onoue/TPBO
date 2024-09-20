@@ -8,12 +8,12 @@ from _components import run_bo
 from _import_from_src import LOG_DIR
 from _import_from_src import set_logger
 from _import_from_src import ExactGP, TP_v2
-from _import_from_src import SinusoidaSynthetic, BraninHoo, Hartmann6
+from _import_from_src import SinusoidalSynthetic, BraninHoo, Hartmann6
 from _import_from_src import UCB_TP, POI_TP, EI_TP
 
 
 objective_dict = {
-    "SinusoidaSynthetic": SinusoidaSynthetic,
+    "SinusoidalSynthetic": SinusoidalSynthetic,
     "BraninHoo": BraninHoo,
     "Hartmann6": Hartmann6,
 }
@@ -44,13 +44,13 @@ def parse_args():
     parser.add_argument(
         "--objective",
         choices=objective_dict.keys(),
-        required=True,
+        default="SinusoidalSynthetic",
         help="Objective function for optimization",
     )
     parser.add_argument(
         "--acquisition",
         choices=acquisition_dict.keys(),
-        required=True,
+        default="UCB",
         help="Acquisition function for Bayesian optimization",
     )
     parser.add_argument(

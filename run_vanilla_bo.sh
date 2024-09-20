@@ -10,7 +10,7 @@ mkdir -p results/
 mkdir -p logs/
 
 # Objectives, acquisitions, and surrogate models to test
-OBJECTIVES=("SinusoidaSynthetic" "BraninHoo" "Hartmann6")
+OBJECTIVES=("SinusoidalSynthetic" "BraninHoo" "Hartmann6")
 ACQUISITIONS=("UCB" "POI" "EI")
 SURROGATES=("GP" "TP")  # GP and TP for different surrogate models
 

@@ -11,8 +11,8 @@ sys.path.append(PROJECT_DIR)
 
 from src.acquisition import EI_TP, UCB_TP, POI_TP
 from src.gp import ExactGP
-from src.tp import TP_v1, TP_v2
-from src.test_functions import SinusoidaSynthetic, BraninHoo, Hartmann6
+from src.tp import TP_v2
+from src.test_functions import SinusoidalSynthetic, BraninHoo, Hartmann6
 from src.utils_bo import DataTransformer, generate_initial_data
 from src.utils_experiment import set_logger
 
@@ -22,9 +22,8 @@ __all__ = [
     "UCB_TP",
     "POI_TP",
     "ExactGP",
-    "TP_v1",
     "TP_v2",
-    "SinusoidaSynthetic",
+    "SinusoidalSynthetic",
     "BraninHoo",
     "Hartmann6",
     "DataTransformer",
