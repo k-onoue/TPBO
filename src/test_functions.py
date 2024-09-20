@@ -8,7 +8,7 @@ import numpy as np
 #     return negated_func
 
 
-class SinusoidaSynthetic:
+class SinusoidalSynthetic:
     r"""
     Computes the function f(x) = -(x-1)^2 * \sin(3x + 5^{-1} + 1) for a given numpy input x.
 

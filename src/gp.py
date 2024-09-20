@@ -250,6 +250,36 @@ class ExactGP:
     def get_samples(self, chain_dim: bool = False) -> Dict[str, jnp.ndarray]:
         """Get posterior samples (after running the MCMC chains)"""
         return self.mcmc.get_samples(group_by_chain=chain_dim)
+    
+    def get_beta(self, **kwargs) -> jnp.ndarray:
+        """Calculate beta using the training data."""
+        y_train = self.y_train.copy()
+        X_train = self.X_train
+        
+        params = self.get_samples()
+        params = {key: jnp.mean(value, axis=0) for key, value in params.items()}
+
+        if self.mean_fn is not None:
+            args_train = [X_train, params] if self.mean_fn_prior else [X_train]
+            phi_train -= self.mean_fn(*args_train).squeeze()
+        else:
+            phi_train = jnp.zeros(X_train.shape[0])
+
+        y_centered = y_train - phi_train
+
+        kernel_params = params.copy()
+        kernel_params.pop("noise")
+        noise = params["noise"]
+
+        # Compute kernel matrices for train and test data
+        K_XX = self.kernel(X_train, X_train, kernel_params, noise, **kwargs)
+        noise_term = noise * jnp.eye(X_train.shape[0])
+        K_XX_with_nosie = K_XX + noise_term
+        K_xx_inv = jnp.linalg.inv(K_XX_with_nosie)
+
+        # Compute beta
+        beta_value = jnp.dot(y_centered.T, jnp.matmul(K_xx_inv, y_centered))
+        return beta_value
 
     def get_mvn_posterior(
         self, X_new: jnp.ndarray, params: Dict[str, jnp.ndarray], noiseless: bool = False, **kwargs: float
@@ -270,10 +300,6 @@ class ExactGP:
         k_XX = self.kernel(self.X_train, self.X_train, params, noise, **kwargs)
         # compute the predictive covariance and mean
         K_xx_inv = jnp.linalg.inv(k_XX)
-
-        # Compute beta as in TP_v2
-        self.beta = jnp.dot(y_residual.T, jnp.matmul(K_xx_inv, y_residual))
-        
         cov = k_pp - jnp.matmul(k_pX, jnp.matmul(K_xx_inv, jnp.transpose(k_pX)))
         mean = jnp.matmul(k_pX, jnp.matmul(K_xx_inv, y_residual))
         if self.mean_fn is not None:
