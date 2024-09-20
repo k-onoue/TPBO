@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # SLURM Resource configuration
-CPUS_PER_TASK=4       # Number of CPUs per task
+CPUS_PER_TASK= 56     # Number of CPUs per task
 PARTITION="gpu_short" # Partition name
 TIME="4:00:00"        # Maximum execution time
 
 # Create results and logs directories if they don't exist
 mkdir -p results/
 mkdir -p logs/
+mkdir -p logs/train/
 
 # Objectives and acquisitions to test
 OBJECTIVES=("SinusoidaSynthetic" "BraninHoo" "Hartmann6")
@@ -15,8 +16,8 @@ ACQUISITIONS=("UCB" "POI" "EI")
 SURROGATES=("GP" "TP")  # Add GP and TP for different surrogate models
 
 # Params
-SEED=0  # No space around '='
-ITER=500  # No space around '='
+SEED=0  
+ITER=500  
 
 # Overwrite config.ini file
 config_file="config.ini"
@@ -40,7 +41,7 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
         for SURROGATE in "${SURROGATES[@]}"; do
             # Run each experiment in parallel using sbatch
             sbatch --job-name="${OBJECTIVE}_${ACQUISITION}_${SURROGATE}" \
-                   --output="logs/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_%j.log" \
+                   --output="logs/train/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_%j.log" \
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
                    --time=$TIME \
