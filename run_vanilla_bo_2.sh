@@ -20,7 +20,7 @@ ACQUISITIONS=("UCB" "POI" "EI")
 SURROGATES=("GP" "TP")  # Add GP and TP for different surrogate models
 
 # Params
-SEED=0  
+SEED=1  
 ITER=500  
 
 # Overwrite config.ini file
