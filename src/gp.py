@@ -133,6 +133,7 @@ class ExactGP:
         self.X_train = None
         self.y_train = None
         self.mcmc = None
+        self.beta = None
 
     def model(self, X: jnp.ndarray, y: jnp.ndarray = None, **kwargs: float) -> None:
         """GP probabilistic model with inputs X and targets y"""
@@ -269,6 +270,10 @@ class ExactGP:
         k_XX = self.kernel(self.X_train, self.X_train, params, noise, **kwargs)
         # compute the predictive covariance and mean
         K_xx_inv = jnp.linalg.inv(k_XX)
+
+        # Compute beta as in TP_v2
+        self.beta = jnp.dot(y_residual.T, jnp.matmul(K_xx_inv, y_residual))
+        
         cov = k_pp - jnp.matmul(k_pX, jnp.matmul(K_xx_inv, jnp.transpose(k_pX)))
         mean = jnp.matmul(k_pX, jnp.matmul(K_xx_inv, y_residual))
         if self.mean_fn is not None:
