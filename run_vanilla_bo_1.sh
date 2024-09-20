@@ -42,9 +42,12 @@ cat $config_file
 for OBJECTIVE in "${OBJECTIVES[@]}"; do
     for ACQUISITION in "${ACQUISITIONS[@]}"; do
         for SURROGATE in "${SURROGATES[@]}"; do
+            # Create the log directory if it doesn't exist
+            mkdir -p "logs/${EXPERIMENTAL_ID}/train"
+
             # Run each experiment in parallel using sbatch
-            sbatch --job-name="${OBJECTIVE}_${ACQUISITION}_${SURROGATE}" \
-                   --output="logs/${EXPERIMENTAL_ID}/train/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_%j.log" \
+            sbatch --job-name="${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed[${SEED}]" \
+                   --output="logs/${EXPERIMENTAL_ID}/train/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed[${SEED}]_%j.log" \
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
                    --time=$TIME \
