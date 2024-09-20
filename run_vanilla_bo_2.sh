@@ -47,7 +47,6 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
                    --output="${LOG_DIR}/train/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_%j.log" \
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
-                   --nodelist=$NODES \
                    --time=$TIME \
                    --wrap="python3 experiments/2024-09-20/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
         done
