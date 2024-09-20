@@ -27,9 +27,9 @@ config_file="config.ini"
 
 config_content="[paths]
 project_dir = /work/keisuke-o/ws/TPBO
-data_dir = ${project_dir}/data
-results_dir = ${project_dir}/results
-logs_dir = ${project_dir}/logs/${EXPERIMENTAL_ID}"
+data_dir = %(project_dir)s/data
+results_dir = %(project_dir)s/results
+logs_dir = %(project_dir)s/logs/${EXPERIMENTAL_ID}"
 
 # Overwrite config.ini file only if necessary
 echo "$config_content" > $config_file
