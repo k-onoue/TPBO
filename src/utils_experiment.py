@@ -9,6 +9,13 @@ def set_logger(log_filename_base, save_dir):
     current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_filename = f"{current_time}_{log_filename_base}.log"
     log_filepath = os.path.join(save_dir, log_filename)
+
+    # Ensure the directory exists
+    os.makedirs(save_dir, exist_ok=True)
+
+    with open(log_filepath, "a"):
+        os.utime(log_filepath, None)
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
