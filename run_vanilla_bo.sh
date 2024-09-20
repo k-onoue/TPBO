@@ -16,8 +16,8 @@ SURROGATES=("GP" "TP")  # GP and TP for different surrogate models
 
 # Params
 SEED=0  
-ITER=500  
-EXPERIMENTAL_ID="E1"
+ITER=100
+EXPERIMENTAL_ID="E2"
 
 # Create directories based on experimental ID
 mkdir -p logs/${EXPERIMENTAL_ID}/train/
@@ -52,7 +52,7 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
                    --time=$TIME \
-                   --wrap="python3 experiments/2024-09-20/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
+                   --wrap="python3 experiments/2024-09-21/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
         done
     done
 done
