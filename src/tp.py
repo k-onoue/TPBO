@@ -478,9 +478,6 @@ class TP_v2:
 
 
 
-
-67
-
 # class TP_v1:
 #     """
 #     Student-t process regression class
