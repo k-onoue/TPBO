@@ -1,5 +1,6 @@
 .DS_Store/
 .venv/
+tpbo-env/
 data/
 __pycache__/
 results/
