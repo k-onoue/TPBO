@@ -89,16 +89,16 @@ if __name__ == "__main__":
 
     # Example experiment settings
     settings = {
-        "name": f"{name}_{args.objective}_{args.surrogate}_{args.acquisition}",  # Experiment name
+        "name": f"{name}_{args.objective}_{args.surrogate}_{args.acquisition}_seed[{seed}]",  # Experiment name
         "is_x64": False,  # Use 64-bit precision
         "seed": seed,  # Random seed
         "search_space": search_space,  # 1D search space example
         "num_iterations": args.iterations,  # Number of optimization iterations
-        "initial_sample_size": 10,  # Number of initial samples
+        "initial_sample_size": 5,  # Number of initial samples
         "objective_function": objective_function,  # Actual objective function
         "acquisition": {  # Acquisition function settings
             "acq_fn_class": acquisition_function,  # Acquisition function class
-            "num_samples": 50,
+            "num_samples": 5,
             "num_initial_guesses": 10,
             "maximize": is_maximize,
         },

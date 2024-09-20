@@ -7,7 +7,6 @@ from gpax.acquisition import UCB, POI, EI
 from _components import run_bo
 from _import_from_src import LOG_DIR
 from _import_from_src import set_logger
-from _import_from_src import ExactGP, TP_v2
 from _import_from_src import SinusoidaSynthetic, BraninHoo, Hartmann6
 from _import_from_src import UCB_TP, POI_TP, EI_TP
 
@@ -51,12 +50,12 @@ if __name__ == "__main__":
         "is_x64": False,  # Use 64-bit precision
         "seed": 0,  # Random seed
         "search_space": search_space,  # 1D search space example
-        "num_iterations": 100,  # Number of optimization iterations
-        "initial_sample_size": 10,  # Number of initial samples
+        "num_iterations": 500,  # Number of optimization iterations
+        "initial_sample_size": 5,  # Number of initial samples
         "objective_function": objective_function,  # Actual objective function
         "acquisition": {  # Acquisition function settings
             "acq_fn_class": EI,  # Acquisition function class
-            "num_samples": 50,
+            "num_samples": 5,
             "num_initial_guesses": 10,
             "maximize": is_maximize,
         },
