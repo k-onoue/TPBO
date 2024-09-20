@@ -43,7 +43,7 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
     for ACQUISITION in "${ACQUISITIONS[@]}"; do
         for SURROGATE in "${SURROGATES[@]}"; do
             # Set up experiment name and log file paths
-            EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed[${SEED}]"
+            EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed${SEED}"
             LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
 
             # Run each experiment in parallel using sbatch
