@@ -94,7 +94,7 @@ if __name__ == "__main__":
         "seed": seed,  # Random seed
         "search_space": search_space,  # 1D search space example
         "num_iterations": args.iterations,  # Number of optimization iterations
-        "initial_sample_size": 1,  # Number of initial samples
+        "initial_sample_size": 5,  # Number of initial samples
         "objective_function": objective_function,  # Actual objective function
         "acquisition": {  # Acquisition function settings
             "acq_fn_class": acquisition_function,  # Acquisition function class
