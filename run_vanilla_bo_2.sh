@@ -4,7 +4,6 @@
 CPUS_PER_TASK=26           # Full node allocation for each job (26 cores)
 PARTITION="cluster_long"    # Partition name
 TIME="4:00:00"              # Maximum execution time
-NODES="cc21cluster[33-38]"  # Specify the nodes you want to use
 
 # Define log directory
 LOG_DIR="logs_2"  # Change this variable to easily update log directory
