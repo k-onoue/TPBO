@@ -2,7 +2,7 @@
 
 # SLURM Resource configuration
 CPUS_PER_TASK=4       # Number of CPUs per task
-PARTITION="gpu_short" # Partition name
+PARTITION="cluster_short" # Partition name
 TIME="4:00:00"        # Maximum execution time
 
 # Create results and logs directories if they don't exist
