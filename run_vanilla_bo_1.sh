@@ -2,7 +2,7 @@
 
 # SLURM Resource configuration
 CPUS_PER_TASK=4       # Number of CPUs per task
-PARTITION="cluster_short" # Partition name
+PARTITION="gpu_short" # Partition name
 TIME="4:00:00"        # Maximum execution time
 
 # Create results and logs directories if they don't exist
@@ -15,7 +15,7 @@ ACQUISITIONS=("UCB" "POI" "EI")
 SURROGATES=("GP" "TP")  # GP and TP for different surrogate models
 
 # Params
-SEED=1
+SEED=0  
 ITER=500  
 EXPERIMENTAL_ID="E1"
 
@@ -27,9 +27,9 @@ config_file="config.ini"
 
 config_content="[paths]
 project_dir = /work/keisuke-o/ws/TPBO
-data_dir = \${project_dir}/data
-results_dir = \${project_dir}/results
-logs_dir = \${project_dir}/logs/\${EXPERIMENTAL_ID}"
+data_dir = ${project_dir}/data
+results_dir = ${project_dir}/results
+logs_dir = ${project_dir}/logs/${EXPERIMENTAL_ID}"
 
 # Overwrite config.ini file only if necessary
 echo "$config_content" > $config_file
@@ -42,12 +42,13 @@ cat $config_file
 for OBJECTIVE in "${OBJECTIVES[@]}"; do
     for ACQUISITION in "${ACQUISITIONS[@]}"; do
         for SURROGATE in "${SURROGATES[@]}"; do
-            # Create the log directory if it doesn't exist
-            mkdir -p "logs/${EXPERIMENTAL_ID}/train"
+            # Set up experiment name and log file paths
+            EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed[${SEED}]"
+            LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
 
             # Run each experiment in parallel using sbatch
-            sbatch --job-name="${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed${SEED}" \
-                   --output="logs/${EXPERIMENTAL_ID}/train/${OBJECTIVE}_${ACQUISITION}_${SURROGATE}_seed${SEED}_%j.log" \
+            sbatch --job-name="${EXPERIMENT_NAME}" \
+                   --output="${LOG_DIR}/${EXPERIMENT_NAME}_%j.log" \
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
                    --time=$TIME \

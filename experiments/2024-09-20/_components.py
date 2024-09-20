@@ -102,8 +102,7 @@ def run_bo(experiment_settings):
     rng_key_1, rng_key_2 = get_keys(seed)
     surrogate_model = initialize_surrogate_model(model_class, surrogate_settings, X_normalized, y_standardized, search_space, rng_key_1)
 
-    if isinstance(surrogate_model, TP_v2):
-        logging.info(f"Beta: {surrogate_model.beta}")
+    logging.info(f"Beta: {float(surrogate_model.beta)}")
 
     # Step 4: Main loop for Bayesian optimization
     X_history, y_history = X_init, y_init
@@ -131,8 +130,7 @@ def run_bo(experiment_settings):
         # Step 4.4: Update the GP model with new data
         surrogate_model = update_surrogate_model(surrogate_model, rng_key_1, X_history, y_history, data_transformer)
 
-        if isinstance(surrogate_model, TP_v2):
-            logging.info(f"model. Beta: {surrogate_model.beta}")
+        logging.info(f"Beta: {float(surrogate_model.beta)}")
 
     logging.info("Completed BO loop.")
     return X_history, y_history
@@ -162,8 +160,7 @@ def run_bo_proposed(experiment_settings):
     rng_key_1, rng_key_2 = get_keys(seed)
     surrogate_model = initialize_surrogate_model(model_class, surrogate_settings, X_normalized, y_standardized, search_space, rng_key_1)
 
-    if isinstance(surrogate_model, TP_v2):
-        logging.info(f"Beta: {surrogate_model.beta}")
+    logging.info(f"Beta: {float(surrogate_model.beta)}")
 
     # Step 4: Main loop for Bayesian optimization
     X_history, y_history = X_init, y_init
@@ -191,8 +188,7 @@ def run_bo_proposed(experiment_settings):
         # Step 4.4: Update the GP model with new data
         surrogate_model = update_surrogate_model(surrogate_model, rng_key_1, X_history, y_history, data_transformer)
 
-        if isinstance(surrogate_model, TP_v2):
-            logging.info(f"Beta: {surrogate_model.beta}")
+        logging.info(f"Beta: {float(surrogate_model.beta)}")
 
     logging.info("Completed BO loop.")
     return X_history, y_history

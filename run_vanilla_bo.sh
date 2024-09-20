@@ -27,9 +27,9 @@ config_file="config.ini"
 
 config_content="[paths]
 project_dir = /work/keisuke-o/ws/TPBO
-data_dir = \${project_dir}/data
-results_dir = \${project_dir}/results
-logs_dir = \${project_dir}/logs/\${EXPERIMENTAL_ID}"
+data_dir = ${project_dir}/data
+results_dir = ${project_dir}/results
+logs_dir = ${project_dir}/logs/${EXPERIMENTAL_ID}"
 
 # Overwrite config.ini file only if necessary
 echo "$config_content" > $config_file
@@ -42,9 +42,6 @@ cat $config_file
 for OBJECTIVE in "${OBJECTIVES[@]}"; do
     for ACQUISITION in "${ACQUISITIONS[@]}"; do
         for SURROGATE in "${SURROGATES[@]}"; do
-            # Create the log directory if it doesn't exist
-            mkdir -p "logs/${EXPERIMENTAL_ID}/train"
-
             # Set up experiment name and log file paths
             EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed[${SEED}]"
             LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
