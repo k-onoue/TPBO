@@ -2,21 +2,20 @@
 
 # SLURM Resource configuration
 CPUS_PER_TASK=4       # Number of CPUs per task
-PARTITION="gpu_long" # Partition name
-TIME="10:00:00"        # Maximum execution time
+PARTITION="gpu_short" # Partition name
+TIME="4:00:00"        # Maximum execution time
 
 # Create results and logs directories if they don't exist
 mkdir -p results/
 mkdir -p logs/
 
-# Objectives, acquisitions, and surrogate models to test
+# Objectives and acquisitions to test
 OBJECTIVES=("SinusoidalSynthetic" "BraninHoo" "Hartmann6")
 ACQUISITIONS=("UCB" "POI" "EI")
-SURROGATES=("GP" "TP")  # GP and TP for different surrogate models
 
 # Params
-SEED=1  
-ITER=100  
+ITER=100
+SURROGATE="GP"  # Set surrogate to GP
 EXPERIMENTAL_ID="E2"
 
 # Create directories based on experimental ID
@@ -38,12 +37,12 @@ echo "$config_content" > $config_file
 echo "config.ini has been overwritten with the following content:"
 cat $config_file
 
-# Loop through each objective, acquisition, and surrogate model
+# Loop through each objective, acquisition, and seed value
 for OBJECTIVE in "${OBJECTIVES[@]}"; do
     for ACQUISITION in "${ACQUISITIONS[@]}"; do
-        for SURROGATE in "${SURROGATES[@]}"; do
+        for SEED in {0..4}; do
             # Set up experiment name and log file paths
-            EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed${SEED}"
+            EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_AGT_${ACQUISITION}_seed${SEED}"
             LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
 
             # Run each experiment in parallel using sbatch
@@ -52,7 +51,7 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
                    --time=$TIME \
-                   --wrap="python3 experiments/2024-09-21/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
+                   --wrap="python3 experiments/2024-09-21/proposed_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --iterations $ITER"
         done
     done
 done

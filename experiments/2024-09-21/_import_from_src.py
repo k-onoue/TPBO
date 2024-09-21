@@ -9,18 +9,20 @@ PROJECT_DIR = config["paths"]["project_dir"]
 LOG_DIR = config["paths"]["logs_dir"]
 sys.path.append(PROJECT_DIR)
 
-from src.acquisition import EI_TP, UCB_TP, POI_TP
+from src.acquisition import EI_TP, UCB_TP, POI_TP, optimize_acq
 from src.gp import ExactGP
 from src.tp import TP_v2
 from src.test_functions import SinusoidalSynthetic, BraninHoo, Hartmann6
 from src.utils_bo import DataTransformer, generate_initial_data
 from src.utils_experiment import set_logger
+from src.utils_agt import get_agt_surrogate
 
 
 __all__ = [
     "EI_TP",
     "UCB_TP",
     "POI_TP",
+    "optimize_acq",
     "ExactGP",
     "TP_v2",
     "SinusoidalSynthetic",
@@ -29,4 +31,5 @@ __all__ = [
     "DataTransformer",
     "generate_initial_data",
     "set_logger",
+    "get_agt_surrogate",
 ]

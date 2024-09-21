@@ -1,60 +1,40 @@
-from typing import Callable, Type, Tuple
-
-import jax.numpy as jnp
+import logging
+from typing import Type, Union
 
 from .gp import ExactGP
 from .tp import TP_v2
 
 
-def switch_to_exactgp_if_needed(
-    tp_model: Type[TP_v2], 
-    rng_key: jnp.ndarray, 
-    X_new: jnp.ndarray, 
-    condition: Callable[[float], bool], 
-    **kwargs
-) -> Tuple[Type[ExactGP], jnp.ndarray, jnp.ndarray]:
+def get_agt_surrogate(tp_model: Type[TP_v2]) -> Union[Type[ExactGP], Type[TP_v2]]:
     """
-    Switches to ExactGP if a condition on TP_v2 is satisfied, and returns predictions using ExactGP.
-    
-    Args:
-        tp_model: The trained TP_v2 model.
-        rng_key: Random number generator key.
-        X_new: New inputs for prediction.
-        condition: A callable that checks the condition on the degrees of freedom.
-    
-    Returns:
-        A tuple of the initialized ExactGP model and its mean and variance predictions.
+    Returns the AGT surrogate model based on the condition on TP_v2.
     """
-    # Step 1: Extract the parameters from TP_v2
-    samples = tp_model.get_samples(chain_dim=False)
-    df = samples["df"].mean()
+    X_train = tp_model.X_train
+    n = X_train.shape[0]  # X_historyはX_trainに変更
+    beta = tp_model.get_beta()
+    beta = float(beta)
 
-    # Check the condition based on the degrees of freedom
-    if condition(df):
-        # Step 2: Transfer parameters to ExactGP (exclude df)
-        gp_params = {
-            key: value for key, value in samples.items() if key != "df"
-        }
-        
-        # Step 3: Initialize ExactGP with the same parameters
-        exactgp_model = ExactGP(
+    criterion = (beta / n) < 1
+
+    logging.info(f"Beta: {beta}")
+    logging.info(f"Criterion: {criterion}")
+
+    if criterion:
+        gp_model = ExactGP(
             input_dim=tp_model.kernel_dim,
-            kernel=tp_model.kernel_name,  # or pass the kernel function directly
-            mean_fn=tp_model.mean_fn,  # same mean function
-            kernel_prior=tp_model.kernel_prior,  # transfer priors
+            kernel=tp_model.kernel_name,
+            mean_fn=tp_model.mean_fn,
+            kernel_prior=tp_model.kernel_prior,
             mean_fn_prior=tp_model.mean_fn_prior,
             noise_prior_dist=tp_model.noise_prior_dist,
-            lengthscale_prior_dist=tp_model.lengthscale_prior_dist
+            lengthscale_prior_dist=tp_model.lengthscale_prior_dist,
         )
 
-        # Ensure the training data is set in ExactGP
-        exactgp_model.X_train = tp_model.X_train
-        exactgp_model.y_train = tp_model.y_train
+        gp_model.X_train = X_train
+        gp_model.y_train = tp_model.y_train 
 
-        # Step 4: Use the transferred parameters to predict using ExactGP
-        y_mean, y_var = exactgp_model.get_mvn_posterior(X_new, gp_params, noiseless=True, **kwargs)
-        
-        return exactgp_model, y_mean, y_var
+        gp_model.mcmc = tp_model.mcmc
 
-    # If the condition is not satisfied, continue using TP_v2
-    return tp_model, None, None  # Or return the existing predictions from TP_v2 if needed
+        return gp_model, None # nu_prime 
+    else:
+        return tp_model, 2.0 # nu_prime 

@@ -1,78 +1,99 @@
 import logging
 import warnings
-
+import argparse
 import numpy as np
-from gpax.acquisition import UCB, POI, EI
 
-from _components import run_bo
+from _components import run_bo_proposed
 from _import_from_src import LOG_DIR
 from _import_from_src import set_logger
-from _import_from_src import SinusoidaSynthetic, BraninHoo, Hartmann6
-from _import_from_src import UCB_TP, POI_TP, EI_TP
-
+from _import_from_src import SinusoidalSynthetic, BraninHoo, Hartmann6
 
 
 objective_dict = {
-    "SinusoidaSynthetic": SinusoidaSynthetic,
+    "SinusoidalSynthetic": SinusoidalSynthetic,
     "BraninHoo": BraninHoo,
     "Hartmann6": Hartmann6,
 }
 
-acquisition_dict = {
-    "UCB": {
-        "GP": UCB,
-        "TP": UCB_TP,
-    },
-    "POI": {
-        "GP": POI,
-        "TP": POI_TP,
-    },
-    "EI": {
-        "GP": EI,
-        "TP": EI_TP,
-    },
-}
+acquisition_list = ["UCB", "POI", "EI"]
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Bayesian Optimization Experiment")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed for reproducibility. Default is 0.",
+    )
+    parser.add_argument(
+        "--objective",
+        choices=objective_dict.keys(),
+        default="SinusoidalSynthetic",
+        help="Objective function for optimization",
+    )
+    parser.add_argument(
+        "--acquisition",
+        choices=acquisition_list,
+        default="UCB",
+        help="Acquisition function for Bayesian optimization",
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=100,
+        help="Number of optimization iterations",
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    warnings.filterwarnings("ignore")
+    # Ignore specific warnings (if known) instead of all warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+
     name = __file__.split("/")[-1].strip(".py")
 
-    # objective_function = SinusoidaSynthetic()
-    # objective_function = BraninHoo()
-    objective_function = Hartmann6()
+    # Parse arguments
+    args = parse_args()
+
+    # set random seed
+    seed = args.seed
+
+    # Set objective function and acquisition function based on user input
+    objective_function = objective_dict[args.objective]()
+    acquisition_function = args.acquisition
+
     search_space = objective_function.search_space
     is_maximize = objective_function.is_maximize
 
     # Example experiment settings
     settings = {
-        "name": name,  # Experiment name
+        "name": f"{name}_{args.objective}_AGT_{args.acquisition}_seed{seed}",  # Experiment name
         "is_x64": False,  # Use 64-bit precision
-        "seed": 0,  # Random seed
+        "seed": seed,  # Random seed
         "search_space": search_space,  # 1D search space example
-        "num_iterations": 500,  # Number of optimization iterations
+        "num_iterations": args.iterations,  # Number of optimization iterations
         "initial_sample_size": 5,  # Number of initial samples
         "objective_function": objective_function,  # Actual objective function
         "acquisition": {  # Acquisition function settings
-            "acq_fn_class": EI,  # Acquisition function class
-            "num_samples": 5,
+            "acq_fn_class": args.acquisition,  # Acquisition function class
+            "num_samples": 1,
             "num_initial_guesses": 10,
             "maximize": is_maximize,
         },
-        "surrogate": {  # Surrogate model (GP) settings
-            "model_class": ExactGP,  # Model class passed through settings
+        "surrogate": {  # Surrogate model (GP or TP) settings
+            "model_class": "AGT",
             "kernel": "Matern",  # Automatically Matern52
             "normalize": True,
             "standardize": True,
         },
-        "memo": "This is an example experiment for Bayesian optimization.",
+        "memo": f"Experiment using {args.objective} with {args.acquisition} acquisition.",
     }
 
     # Set up logging
     set_logger(settings["name"], LOG_DIR)
 
     # Run the Bayesian optimization
-    X_history, y_history = run_bo(settings)
+    X_history, y_history = run_bo_proposed(settings)
 
     # Final result
     logging.info("\nFinal X history (in original space):")
@@ -81,6 +102,8 @@ if __name__ == "__main__":
     logging.info(f"{y_history}")
 
     # The final result is in X_history and y_history, containing all evaluated points and their original function values.
-    optimal_index = np.argmin(y_history)
+    if is_maximize:
+        optimal_index = np.argmax(y_history)
+
     logging.info(f"Optimal X: {X_history[optimal_index]}")
     logging.info(f"Optimal y: {y_history[optimal_index]}")

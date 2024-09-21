@@ -15,7 +15,6 @@ ACQUISITIONS=("UCB" "POI" "EI")
 SURROGATES=("GP" "TP")  # GP and TP for different surrogate models
 
 # Params
-SEED=0  
 ITER=100
 EXPERIMENTAL_ID="E2"
 
@@ -38,21 +37,23 @@ echo "$config_content" > $config_file
 echo "config.ini has been overwritten with the following content:"
 cat $config_file
 
-# Loop through each objective, acquisition, and surrogate model
+# Loop through each objective, acquisition, surrogate model, and seed value
 for OBJECTIVE in "${OBJECTIVES[@]}"; do
     for ACQUISITION in "${ACQUISITIONS[@]}"; do
         for SURROGATE in "${SURROGATES[@]}"; do
-            # Set up experiment name and log file paths
-            EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed${SEED}"
-            LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
+            for SEED in {0..4}; do
+                # Set up experiment name and log file paths
+                EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed${SEED}"
+                LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
 
-            # Run each experiment in parallel using sbatch
-            sbatch --job-name="${EXPERIMENT_NAME}" \
-                   --output="${LOG_DIR}/${EXPERIMENT_NAME}_%j.log" \
-                   --cpus-per-task=$CPUS_PER_TASK \
-                   --partition=$PARTITION \
-                   --time=$TIME \
-                   --wrap="python3 experiments/2024-09-21/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
+                # Run each experiment in parallel using sbatch
+                sbatch --job-name="${EXPERIMENT_NAME}" \
+                       --output="${LOG_DIR}/${EXPERIMENT_NAME}_%j.log" \
+                       --cpus-per-task=$CPUS_PER_TASK \
+                       --partition=$PARTITION \
+                       --time=$TIME \
+                       --wrap="python3 experiments/2024-09-21/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
+            done
         done
     done
 done
