@@ -10,7 +10,7 @@ import numpy as np
 
 class SinusoidalSynthetic:
     r"""
-    Computes the function f(x) = -(x-1)^2 * \sin(3x + 5^{-1} + 1) for a given numpy input x.
+    Computes the function f(x) = -(x-1)^2 * \sin(3x + x/5 + 1) for a given numpy input x.
 
     Args:
         x (np.ndarray): Input array of shape (N, 1) where N is the number of data points.
