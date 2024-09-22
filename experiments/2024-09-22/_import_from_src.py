@@ -13,6 +13,7 @@ from src.acquisition import EI_TP, UCB_TP, POI_TP, optimize_acq
 from src.gp import ExactGP
 from src.tp import TP_v2
 from src.test_functions import SinusoidalSynthetic, BraninHoo, Hartmann6
+from src.test_functions import add_noise
 from src.utils_bo import DataTransformer, generate_initial_data
 from src.utils_experiment import set_logger
 from src.utils_agt import get_agt_surrogate
@@ -28,6 +29,7 @@ __all__ = [
     "SinusoidalSynthetic",
     "BraninHoo",
     "Hartmann6",
+    "add_noise",
     "DataTransformer",
     "generate_initial_data",
     "set_logger",

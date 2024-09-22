@@ -13,6 +13,7 @@ from _import_from_src import ExactGP, TP_v2
 from _import_from_src import optimize_acq as optimize_acq_proposed
 from _import_from_src import get_agt_surrogate
 from _import_from_src import UCB_TP, POI_TP, EI_TP
+from _import_from_src import add_noise
 
 
 def set_seed(seed):
@@ -103,6 +104,9 @@ def run_bo(experiment_settings):
     surrogate_settings = experiment_settings["surrogate"]
     model_class = surrogate_settings["model_class"]  # Model class passed through settings
     seed = experiment_settings["seed"]
+
+    noise_strength = experiment_settings.get("noise_strength", 0.0)
+    objective_function = add_noise(objective_function, noise_strength)
 
     set_seed(seed)
     rng_key_1, rng_key_2 = get_keys(seed)
@@ -216,6 +220,9 @@ def run_bo_proposed(experiment_settings):
     surrogate_settings = experiment_settings["surrogate"]
     # model_class = surrogate_settings["model_class"]  # Model class passed through 
     seed = experiment_settings["seed"]
+
+    noise_strength = experiment_settings.get("noise_strength", 0.0)
+    objective_function = add_noise(objective_function, noise_strength)
 
     set_seed(seed)
     rng_key_1, rng_key_2 = get_keys(seed)

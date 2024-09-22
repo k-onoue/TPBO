@@ -33,6 +33,12 @@ def parse_args():
         help="Objective function for optimization",
     )
     parser.add_argument(
+        "--noise_strength",
+        type=float,
+        default=0,
+        help="Noise strength for objective function",
+    )
+    parser.add_argument(
         "--acquisition",
         choices=acquisition_list,
         default="UCB",
@@ -75,6 +81,7 @@ if __name__ == "__main__":
         "num_iterations": args.iterations,  # Number of optimization iterations
         "initial_sample_size": 5,  # Number of initial samples
         "objective_function": objective_function,  # Actual objective function
+        "noise_strength": args.noise_strength,  # Noise strength for objective function
         "acquisition": {  # Acquisition function settings
             "acq_fn_class": args.acquisition,  # Acquisition function class
             "num_samples": 1,

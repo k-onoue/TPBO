@@ -7,6 +7,11 @@ import numpy as np
 
 #     return negated_func
 
+def add_noise(func, strength=1):
+    def noisy_func(x):
+        return func(x) + strength * np.random.normal(0, 1)
+
+    return noisy_func
 
 class SinusoidalSynthetic:
     r"""
@@ -24,7 +29,11 @@ class SinusoidalSynthetic:
     def __init__(self):
         self.search_space = np.array([[5], [10]])
         self.is_maximize = False
-    
+        self.max_x = 9.03835
+        self.max_f = 64.4207
+        self.min_x = 10
+        self.min_f = -80.9928606687
+
     def __call__(self, x: np.ndarray) -> np.ndarray:
         # If the input is of shape (N,), reshape it to (N, 1)
         if x.ndim == 1:
@@ -58,6 +67,7 @@ class BraninHoo:
     def __init__(self):
         self.search_space = np.array([[0, -5], [15, 15]]) 
         self.is_maximize = False
+        self.min_f = 0.397887
     
     def __call__(self, x: np.ndarray) -> np.ndarray:
         if x.ndim != 2 or x.shape[1] != 2:
@@ -98,6 +108,7 @@ class Hartmann6:
     def __init__(self):
         self.search_space = np.array([[0] * 6, [1] * 6])
         self.is_maximize = False
+        self.min_f = -3.32237
     
     def __call__(self, x: np.ndarray) -> np.ndarray:
         if x.ndim != 2 or x.shape[1] != 6:

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SLURM Resource configuration
-CPUS_PER_TASK=4       # Number of CPUs per task
+CPUS_PER_TASK=8       # Number of CPUs per task
 PARTITION="gpu_short" # Partition name
 TIME="4:00:00"        # Maximum execution time
 
@@ -17,6 +17,9 @@ ACQUISITIONS=("EI")
 # Params
 ITER=50
 EXPERIMENTAL_ID="E3"
+
+# Noise strength
+NOISE=0.0
 
 # Create directories based on experimental ID
 mkdir -p logs/${EXPERIMENTAL_ID}/train/
@@ -40,7 +43,7 @@ cat $config_file
 # Loop through each objective, acquisition, and seed value
 for OBJECTIVE in "${OBJECTIVES[@]}"; do
     for ACQUISITION in "${ACQUISITIONS[@]}"; do
-        for SEED in {0..4}; do
+        for SEED in {0..15}; do
             # Set up experiment name and log file paths
             EXPERIMENT_NAME="proposed_bo_${OBJECTIVE}_AGT_${ACQUISITION}_seed${SEED}"
             LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
@@ -51,7 +54,7 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
                    --cpus-per-task=$CPUS_PER_TASK \
                    --partition=$PARTITION \
                    --time=$TIME \
-                   --wrap="python3 experiments/2024-09-22/proposed_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --iterations $ITER"
+                   --wrap="python3 experiments/2024-09-22/proposed_bo.py --seed $SEED --objective $OBJECTIVE --noise_strength $NOISE  --acquisition $ACQUISITION --iterations $ITER"
         done
     done
 done

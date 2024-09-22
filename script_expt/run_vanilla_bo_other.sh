@@ -3,7 +3,7 @@
 # SLURM Resource configuration
 CPUS_PER_TASK=4       # Number of CPUs per task
 PARTITION="cluster_long" # Partition name
-TIME="4:00:00"        # Maximum execution time
+TIME="10:00:00"        # Maximum execution time
 
 # Create results and logs directories if they don't exist
 mkdir -p results/
@@ -12,7 +12,7 @@ mkdir -p logs/
 # Objectives, acquisitions, and surrogate models to test
 OBJECTIVES=("SinusoidalSynthetic" "BraninHoo" "Hartmann6")
 # ACQUISITIONS=("UCB" "POI" "EI")
-ACQUISITIONS=("EI")
+ACQUISITIONS=("UCB POI")
 SURROGATES=("GP" "TP")  # GP and TP for different surrogate models
 
 # Params
@@ -53,7 +53,7 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
                        --cpus-per-task=$CPUS_PER_TASK \
                        --partition=$PARTITION \
                        --time=$TIME \
-                       --wrap="python3 experiments/2024-09-22/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
+                       --wrap="python3 experiments/2024-09-21/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
             done
         done
     done
