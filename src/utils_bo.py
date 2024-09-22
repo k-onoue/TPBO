@@ -56,15 +56,15 @@ class DataTransformer:
 
 
 # Generate initial data based on Sobol samples
-def generate_initial_data(objective, bounds, n=5):
-    # Generate Sobol sequences
-    sobol = qmc.Sobol(d=len(bounds[0]))  # Dimension equals the number of bounds
+def generate_initial_data(objective, bounds, n=5, seed=None):
+    # Generate Sobol sequences with a given seed
+    sobol = qmc.Sobol(d=len(bounds[0]), seed=seed)  # Pass the seed to the Sobol constructor
     initial_x = sobol.random_base2(m=int(np.log2(n)))  # Generate n Sobol points
+    
     # Scale Sobol points to the bounds
     initial_x = qmc.scale(initial_x, bounds[0], bounds[1])
 
     # Evaluate the objective function
-    # initial_y = np.array([objective(x) for x in initial_x])
     initial_y = objective(initial_x)
 
     return initial_x, initial_y
