@@ -3,7 +3,7 @@
 # SLURM Resource configuration
 CPUS_PER_TASK=4       # Number of CPUs per task
 PARTITION="gpu_short" # Partition name
-TIME="4:00:00"        # Maximum execution time
+TIME="10:00:00"        # Maximum execution time
 
 # Create results and logs directories if they don't exist
 mkdir -p results/
@@ -11,12 +11,13 @@ mkdir -p logs/
 
 # Objectives, acquisitions, and surrogate models to test
 OBJECTIVES=("SinusoidalSynthetic" "BraninHoo" "Hartmann6")
-ACQUISITIONS=("UCB" "POI" "EI")
+# ACQUISITIONS=("UCB" "POI" "EI")
+ACQUISITIONS=("EI")
 SURROGATES=("GP" "TP")  # GP and TP for different surrogate models
 
 # Params
-ITER=100
-EXPERIMENTAL_ID="E2"
+ITER=50
+EXPERIMENTAL_ID="E3"
 
 # Create directories based on experimental ID
 mkdir -p logs/${EXPERIMENTAL_ID}/train/
