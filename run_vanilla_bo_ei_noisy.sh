@@ -3,7 +3,7 @@
 # SLURM Resource configuration
 CPUS_PER_TASK=4       # Number of CPUs per task
 PARTITION="cluster_long" # Partition name
-TIME="10:00:00"        # Maximum execution time
+TIME="4:00:00"        # Maximum execution time
 
 # Create results and logs directories if they don't exist
 mkdir -p results/
@@ -20,7 +20,7 @@ ITER=50
 EXPERIMENTAL_ID="E3"
 
 # Noise strength
-NOISE=0.0
+NOISE=(1. 2)
 
 # Create directories based on experimental ID
 mkdir -p logs/${EXPERIMENTAL_ID}/train/
@@ -41,22 +41,24 @@ echo "$config_content" > $config_file
 echo "config.ini has been overwritten with the following content:"
 cat $config_file
 
-# Loop through each objective, acquisition, surrogate model, and seed value
+# Loop through each objective, acquisition, surrogate model, seed, and noise value
 for OBJECTIVE in "${OBJECTIVES[@]}"; do
     for ACQUISITION in "${ACQUISITIONS[@]}"; do
         for SURROGATE in "${SURROGATES[@]}"; do
             for SEED in {0..4}; do
-                # Set up experiment name and log file paths
-                EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed${SEED}"
-                LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
+                for NOISE_VAL in "${NOISE[@]}"; do
+                    # Set up experiment name and log file paths
+                    EXPERIMENT_NAME="vanilla_bo_${OBJECTIVE}_${SURROGATE}_${ACQUISITION}_seed${SEED}_noise${NOISE_VAL}"
+                    LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
 
-                # Run each experiment in parallel using sbatch
-                sbatch --job-name="${EXPERIMENT_NAME}" \
-                       --output="${LOG_DIR}/${EXPERIMENT_NAME}_%j.log" \
-                       --cpus-per-task=$CPUS_PER_TASK \
-                       --partition=$PARTITION \
-                       --time=$TIME \
-                       --wrap="python3 experiments/2024-09-21/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --noise_strength $NOISE --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
+                    # Run each experiment in parallel using sbatch
+                    sbatch --job-name="${EXPERIMENT_NAME}" \
+                           --output="${LOG_DIR}/${EXPERIMENT_NAME}_%j.log" \
+                           --cpus-per-task=$CPUS_PER_TASK \
+                           --partition=$PARTITION \
+                           --time=$TIME \
+                           --wrap="python3 experiments/2024-09-22/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --noise_strength $NOISE_VAL --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
+                done
             done
         done
     done
