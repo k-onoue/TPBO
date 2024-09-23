@@ -57,7 +57,7 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
                            --cpus-per-task=$CPUS_PER_TASK \
                            --partition=$PARTITION \
                            --time=$TIME \
-                           --wrap="python3 experiments/2024-09-22/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --noise_strength $NOISE_VAL --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
+                           --wrap="python3 experiments/2024-09-23/vanilla_bo.py --seed $SEED --objective $OBJECTIVE --noise_strength $NOISE_VAL --acquisition $ACQUISITION --surrogate $SURROGATE --iterations $ITER"
                 done
             done
         done

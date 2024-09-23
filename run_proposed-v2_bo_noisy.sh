@@ -46,7 +46,7 @@ for OBJECTIVE in "${OBJECTIVES[@]}"; do
         for SEED in {0..4}; do
             for NOISE_VAL in "${NOISE[@]}"; do
                 # Set up experiment name and log file paths
-                EXPERIMENT_NAME="proposed_bo_${OBJECTIVE}_AGT_${ACQUISITION}_seed${SEED}_noise${NOISE_VAL}"
+                EXPERIMENT_NAME="proposed_bo-v2_${OBJECTIVE}_AGT_${ACQUISITION}_seed${SEED}_noise${NOISE_VAL}"
                 LOG_DIR="logs/${EXPERIMENTAL_ID}/train"
 
                 # Run each experiment in parallel using sbatch
