@@ -154,6 +154,79 @@ def run_bo(experiment_settings):
     return X_history, y_history
 
 
+# Main Bayesian Optimization function
+def run_bo_compare(experiment_settings):
+    logging.info(f"Start BO with settings: {experiment_settings}")
+
+    # Step 1: Set precision if required
+    if experiment_settings["is_x64"]:
+        enable_x64()
+
+    # Step 2: Extract settings
+    search_space = experiment_settings["search_space"]
+    num_iterations = experiment_settings["num_iterations"]
+    initial_sample_size = experiment_settings["initial_sample_size"]
+    objective_function = experiment_settings["objective_function"]
+    acq_settings = experiment_settings["acquisition"]
+    surrogate_settings = experiment_settings["surrogate"]
+    model_class = surrogate_settings["model_class"]  # Model class passed through settings
+    seed = experiment_settings["seed"]
+
+    noise_strength = experiment_settings.get("noise_strength", 0.0)
+    objective_function = add_noise(objective_function, noise_strength)
+
+    set_seed(seed)
+    rng_key_1, rng_key_2 = get_keys(seed)
+
+    # Step 3: Initialize data and GP model
+    data_transformer = DataTransformer(search_space, surrogate_settings)
+    X_init, y_init, X_normalized, y_standardized = initialize_data(
+        objective_function, search_space, initial_sample_size, data_transformer, seed
+    )
+    surrogate_model = initialize_surrogate_model(
+        model_class, surrogate_settings, X_normalized, y_standardized, search_space, rng_key_1
+    )
+    surrogate_model_2 = initialize_surrogate_model(
+        ExactGP, surrogate_settings, X_normalized, y_standardized, search_space, rng_key_1
+    )
+
+    logging.info(f"Beta (TP): {float(surrogate_model.get_beta())}")
+    logging.info(f"Beta (GP): {float(surrogate_model_2.get_beta())}")
+
+    # Step 4: Main loop for Bayesian optimization
+    X_history, y_history = X_init, y_init
+    lb_normalized = data_transformer.normalize(search_space[0].reshape(1, search_space.shape[1]))
+    ub_normalized = data_transformer.normalize(search_space[1].reshape(1, search_space.shape[1]))
+
+    for i in range(num_iterations):
+        logging.info(f"Iteration: {i + 1} / {num_iterations}")
+
+        # Step 4.1: Optimize acquisition function to find next point
+        X_next_normalized = optimize_acquisition_function(
+            rng_key_2, surrogate_model, acq_settings, lb_normalized, ub_normalized, y_standardized
+        )
+        X_next = data_transformer.inverse_normalize(X_next_normalized.reshape(1, search_space.shape[1]))
+        logging.info(f"X new: {X_next}")
+
+        # Step 4.2: Evaluate the objective function
+        y_next = objective_function(X_next)
+        logging.info(f"y new: {y_next}")
+
+        # Step 4.3: Update history with the new point
+        X_history = np.vstack((X_history, np.array(X_next)))
+        y_history = np.vstack((y_history, np.array(y_next)))
+
+        # Step 4.4: Update the GP model with new data
+        surrogate_model = update_surrogate_model(surrogate_model, rng_key_1, X_history, y_history, data_transformer)
+        surrogate_model_2 = update_surrogate_model(surrogate_model_2, rng_key_1, X_history, y_history, data_transformer)
+
+        logging.info(f"Beta (TP): {float(surrogate_model.get_beta())}")
+        logging.info(f"Beta (GP): {float(surrogate_model_2.get_beta())}")
+
+    logging.info("Completed BO loop.")
+    return X_history, y_history
+
+
 #########################################################################
 #########################################################################
 #########################################################################
