@@ -17,7 +17,7 @@ SURROGATES=("GP" "TP")  # GP and TP for different surrogate models
 
 # Params
 ITER=50
-EXPERIMENTAL_ID="E4"
+EXPERIMENTAL_ID="E5"
 
 # Noise strength
 NOISE=(0 1 2)

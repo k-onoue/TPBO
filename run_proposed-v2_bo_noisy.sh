@@ -2,7 +2,7 @@
 
 # SLURM Resource configuration
 CPUS_PER_TASK=4       # Number of CPUs per task
-PARTITION="gpu_short" # Partition name
+PARTITION="cluster_short" # Partition name
 TIME="4:00:00"        # Maximum execution time
 
 # Create results and logs directories if they don't exist
@@ -19,7 +19,7 @@ NOISE=(0 1 2)
 
 # Params
 ITER=50
-EXPERIMENTAL_ID="E3"
+EXPERIMENTAL_ID="E4_additional"
 
 # Create directories based on experimental ID
 mkdir -p logs/${EXPERIMENTAL_ID}/train/
