@@ -28,7 +28,7 @@ class AddNoise:
         self.noise_type = noise_type
         self.df = df  # t分布の自由度
 
-    def noisy_func(self, x):
+    def __call__(self, x):
         if self.noise_type == 'normal':
             noise = np.random.normal(0, 1)
         elif self.noise_type == 't':
