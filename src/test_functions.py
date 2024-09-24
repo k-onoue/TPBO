@@ -13,6 +13,36 @@ def add_noise(func, strength=1):
 
     return noisy_func
 
+
+class AddNoise:
+    def __init__(self, func, strength=1, noise_type='normal', df=1):
+        """
+        Parameters:
+        - func: 元の関数
+        - strength: ノイズの強度
+        - noise_type: ノイズの種類 ('normal', 't', 'uniform')
+        - df: t分布の自由度 (noise_type='t'の場合に使用)
+        """
+        self.func = func
+        self.strength = strength
+        self.noise_type = noise_type
+        self.df = df  # t分布の自由度
+
+    def noisy_func(self, x):
+        if self.noise_type == 'normal':
+            noise = np.random.normal(0, 1)
+        elif self.noise_type == 't':
+            if self.df is None:
+                raise ValueError("t分布を使用する場合、自由度 df を指定してください")
+            noise = np.random.standard_t(self.df)
+        elif self.noise_type == 'uniform':
+            noise = np.random.uniform(-1, 1)
+        else:
+            raise ValueError("サポートされていないノイズタイプです: {}".format(self.noise_type))
+        
+        return self.func(x) + self.strength * noise
+
+
 class SinusoidalSynthetic:
     r"""
     Computes the function f(x) = -(x-1)^2 * \sin(3x + x/5 + 1) for a given numpy input x.
