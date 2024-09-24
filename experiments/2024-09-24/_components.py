@@ -107,8 +107,7 @@ def run_bo(experiment_settings):
 
     noise_strength = experiment_settings.get("noise_strength", 0.0)
     noise_type = experiment_settings.get("noise_type", "normal")
-    add_noise = AddNoise(objective_function, strength=noise_strength, noise_type=noise_type)
-    objective_function = add_noise(objective_function, noise_strength)
+    objective_function = AddNoise(objective_function, strength=noise_strength, noise_type=noise_type)
 
     set_seed(seed)
     rng_key_1, rng_key_2 = get_keys(seed)
@@ -176,8 +175,7 @@ def run_bo_compare(experiment_settings):
 
     noise_strength = experiment_settings.get("noise_strength", 0.0)
     noise_type = experiment_settings.get("noise_type", "normal")
-    add_noise = AddNoise(objective_function, strength=noise_strength, noise_type=noise_type)
-    objective_function = add_noise(objective_function, noise_strength)
+    objective_function = AddNoise(objective_function, strength=noise_strength, noise_type=noise_type)
 
     set_seed(seed)
     rng_key_1, rng_key_2 = get_keys(seed)
@@ -300,8 +298,7 @@ def run_bo_proposed(experiment_settings):
 
     noise_strength = experiment_settings.get("noise_strength", 0.0)
     noise_type = experiment_settings.get("noise_type", "normal")
-    add_noise = AddNoise(objective_function, strength=noise_strength, noise_type=noise_type)
-    objective_function = add_noise(objective_function, noise_strength)
+    objective_function = AddNoise(objective_function, strength=noise_strength, noise_type=noise_type)
 
     set_seed(seed)
     rng_key_1, rng_key_2 = get_keys(seed)
@@ -373,8 +370,7 @@ def run_bo_proposed_v2(experiment_settings):
 
     noise_strength = experiment_settings.get("noise_strength", 0.0)
     noise_type = experiment_settings.get("noise_type", "normal")
-    add_noise = AddNoise(objective_function, strength=noise_strength, noise_type=noise_type)
-    objective_function = add_noise(objective_function, noise_strength)
+    objective_function = AddNoise(objective_function, strength=noise_strength, noise_type=noise_type)
 
     set_seed(seed)
     rng_key_1, rng_key_2 = get_keys(seed)
