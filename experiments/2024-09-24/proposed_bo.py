@@ -18,6 +18,7 @@ objective_dict = {
 
 acquisition_list = ["UCB", "POI", "EI"]
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Bayesian Optimization Experiment")
     parser.add_argument(

@@ -34,6 +34,7 @@ acquisition_dict = {
     },
 }
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Bayesian Optimization Experiment")
     parser.add_argument(
@@ -118,7 +119,9 @@ if __name__ == "__main__":
             "maximize": is_maximize,
         },
         "surrogate": {  # Surrogate model (GP or TP) settings
-            "model_class": ExactGP if args.surrogate == "GP" else TP_v2,  # Model class based on user input
+            "model_class": ExactGP
+            if args.surrogate == "GP"
+            else TP_v2,  # Model class based on user input
             "kernel": "Matern",  # Automatically Matern52
             "normalize": True,
             "standardize": True,

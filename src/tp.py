@@ -21,7 +21,9 @@ from numpyro.infer import MCMC, NUTS, init_to_median, Predictive
 from gpax.kernels import get_kernel
 # from gpax.utils import split_in_batches
 
-kernel_fn_type = Callable[[jnp.ndarray, jnp.ndarray, Dict[str, jnp.ndarray], jnp.ndarray], jnp.ndarray]
+kernel_fn_type = Callable[
+    [jnp.ndarray, jnp.ndarray, Dict[str, jnp.ndarray], jnp.ndarray], jnp.ndarray
+]
 
 clear_cache = jax._src.dispatch.xla_primitive_callable.cache_clear
 
@@ -70,7 +72,9 @@ class TP_v2:
         self,
         input_dim: int,
         kernel: Union[str, kernel_fn_type],
-        mean_fn: Optional[Callable[[jnp.ndarray, Dict[str, jnp.ndarray]], jnp.ndarray]] = None,
+        mean_fn: Optional[
+            Callable[[jnp.ndarray, Dict[str, jnp.ndarray]], jnp.ndarray]
+        ] = None,
         kernel_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         mean_fn_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         noise_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
@@ -169,7 +173,7 @@ class TP_v2:
         progress_bar: bool = True,
         print_summary: bool = True,
         device: Type[jaxlib.xla_extension.Device] = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> None:
         """
         Run Hamiltonian Monte Carlo to infer the Student-t process parameters
@@ -228,7 +232,9 @@ class TP_v2:
             length_dist = self.lengthscale_prior_dist
         else:
             length_dist = dist.LogNormal(0.0, 1.0)
-        with numpyro.plate("ard", self.kernel_dim):  # allows using ARD kernel for kernel_dim > 1
+        with numpyro.plate(
+            "ard", self.kernel_dim
+        ):  # allows using ARD kernel for kernel_dim > 1
             length = numpyro.sample("k_length", length_dist)
         if output_scale:
             scale = numpyro.sample("k_scale", dist.LogNormal(0.0, 1.0))
@@ -246,8 +252,13 @@ class TP_v2:
     def get_samples(self, chain_dim: bool = False) -> Dict[str, jnp.ndarray]:
         """Get posterior samples (after running the MCMC chains)"""
         return self.mcmc.get_samples(group_by_chain=chain_dim)
-    
-    def get_beta(self, params: Optional[Dict[str, jnp.ndarray]] = None, K_11_inv: Optional[jnp.ndarray] = None, **kwargs) -> jnp.ndarray:
+
+    def get_beta(
+        self,
+        params: Optional[Dict[str, jnp.ndarray]] = None,
+        K_11_inv: Optional[jnp.ndarray] = None,
+        **kwargs,
+    ) -> jnp.ndarray:
         """
         Calculate beta, the residual term used in Student-t process.
 
@@ -294,7 +305,11 @@ class TP_v2:
         return beta_value
 
     def get_mvt_posterior(
-        self, X_new: jnp.ndarray, params: Dict[str, jnp.ndarray], nu_prime: float = None, **kwargs: float
+        self,
+        X_new: jnp.ndarray,
+        params: Dict[str, jnp.ndarray],
+        nu_prime: float = None,
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray, float]:
         """
         Returns parameters (mean, cov, df) of the predictive Multivariate Student-t posterior
@@ -367,7 +382,7 @@ class TP_v2:
         params: Dict[str, jnp.ndarray],
         n: int,
         nu_prime: float = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """Prediction with a single sample of TP parameters
 
@@ -384,15 +399,17 @@ class TP_v2:
             y_samples: Sampled predictions
         """
         # Get the predictive mean, covariance, and custom degrees of freedom
-        y_mean, cov, df_pred = self.get_mvt_posterior(X_new, params, nu_prime=nu_prime, **kwargs)
+        y_mean, cov, df_pred = self.get_mvt_posterior(
+            X_new, params, nu_prime=nu_prime, **kwargs
+        )
 
         # Compute the Cholesky decomposition of the covariance matrix
         scale_tril = jnp.linalg.cholesky(cov)
 
         # Draw samples from the predictive Multivariate Student-t distribution
-        y_samples = dist.MultivariateStudentT(df=df_pred, loc=y_mean, scale_tril=scale_tril).sample(
-            rng_key, sample_shape=(n,)
-        )
+        y_samples = dist.MultivariateStudentT(
+            df=df_pred, loc=y_mean, scale_tril=scale_tril
+        ).sample(rng_key, sample_shape=(n,))
 
         return y_mean, y_samples
 
@@ -405,7 +422,7 @@ class TP_v2:
         nu_prime: float = None,
         filter_nans: bool = False,
         device: Type[jaxlib.xla_extension.Device] = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Make prediction at X_new points using posterior samples for TP parameters
@@ -432,18 +449,26 @@ class TP_v2:
             samples = jax.device_put(samples, device)
         num_samples = len(next(iter(samples.values())))
         vmap_args = (jra.split(rng_key, num_samples), samples)
-        predictive = jax.vmap(lambda prms: self._predict(prms[0], X_new, prms[1], n, nu_prime=nu_prime, **kwargs))
+        predictive = jax.vmap(
+            lambda prms: self._predict(
+                prms[0], X_new, prms[1], n, nu_prime=nu_prime, **kwargs
+            )
+        )
         y_means, y_sampled = predictive(vmap_args)
         if filter_nans:
 
             def filter_out_nans(y_sample):
-                return jnp.where(jnp.isnan(y_sample).any(), jnp.zeros_like(y_sample), y_sample)
+                return jnp.where(
+                    jnp.isnan(y_sample).any(), jnp.zeros_like(y_sample), y_sample
+                )
 
             y_sampled = jax.vmap(filter_out_nans)(y_sampled)
 
         return y_means.mean(0), y_sampled
 
-    def sample_from_prior(self, rng_key: jnp.ndarray, X: jnp.ndarray, num_samples: int = 10):
+    def sample_from_prior(
+        self, rng_key: jnp.ndarray, X: jnp.ndarray, num_samples: int = 10
+    ):
         """
         Samples from prior predictive distribution at X
         """
@@ -452,7 +477,9 @@ class TP_v2:
         samples = prior_predictive(rng_key, X)
         return samples["y"]
 
-    def _set_data(self, X: jnp.ndarray, y: Optional[jnp.ndarray] = None) -> Union[Tuple[jnp.ndarray], jnp.ndarray]:
+    def _set_data(
+        self, X: jnp.ndarray, y: Optional[jnp.ndarray] = None
+    ) -> Union[Tuple[jnp.ndarray], jnp.ndarray]:
         X = X if X.ndim > 1 else X[:, None]
         if y is not None:
             return X, y.squeeze()
@@ -475,8 +502,6 @@ class TP_v2:
     def _print_summary(self):
         samples = self.get_samples(1)
         numpyro.diagnostics.print_summary(samples)
-
-
 
 
 class TP_v3:
@@ -523,7 +548,9 @@ class TP_v3:
         self,
         input_dim: int,
         kernel: Union[str, kernel_fn_type],
-        mean_fn: Optional[Callable[[jnp.ndarray, Dict[str, jnp.ndarray]], jnp.ndarray]] = None,
+        mean_fn: Optional[
+            Callable[[jnp.ndarray, Dict[str, jnp.ndarray]], jnp.ndarray]
+        ] = None,
         kernel_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         mean_fn_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         noise_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
@@ -622,7 +649,7 @@ class TP_v3:
         progress_bar: bool = True,
         print_summary: bool = True,
         device: Type[jaxlib.xla_extension.Device] = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> None:
         """
         Run Hamiltonian Monte Carlo to infer the Student-t process parameters
@@ -681,7 +708,9 @@ class TP_v3:
             length_dist = self.lengthscale_prior_dist
         else:
             length_dist = dist.LogNormal(0.0, 1.0)
-        with numpyro.plate("ard", self.kernel_dim):  # allows using ARD kernel for kernel_dim > 1
+        with numpyro.plate(
+            "ard", self.kernel_dim
+        ):  # allows using ARD kernel for kernel_dim > 1
             length = numpyro.sample("k_length", length_dist)
         if output_scale:
             scale = numpyro.sample("k_scale", dist.LogNormal(0.0, 1.0))
@@ -699,8 +728,13 @@ class TP_v3:
     def get_samples(self, chain_dim: bool = False) -> Dict[str, jnp.ndarray]:
         """Get posterior samples (after running the MCMC chains)"""
         return self.mcmc.get_samples(group_by_chain=chain_dim)
-    
-    def get_beta(self, params: Optional[Dict[str, jnp.ndarray]] = None, K_11_inv: Optional[jnp.ndarray] = None, **kwargs) -> jnp.ndarray:
+
+    def get_beta(
+        self,
+        params: Optional[Dict[str, jnp.ndarray]] = None,
+        K_11_inv: Optional[jnp.ndarray] = None,
+        **kwargs,
+    ) -> jnp.ndarray:
         """
         Calculate beta, the residual term used in Student-t process.
 
@@ -747,7 +781,11 @@ class TP_v3:
         return beta_value
 
     def get_mvt_posterior(
-        self, X_new: jnp.ndarray, params: Dict[str, jnp.ndarray], nu_prime: float = None, **kwargs: float
+        self,
+        X_new: jnp.ndarray,
+        params: Dict[str, jnp.ndarray],
+        nu_prime: float = None,
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray, float]:
         """
         Returns parameters (mean, cov, df) of the predictive Multivariate Student-t posterior
@@ -820,7 +858,7 @@ class TP_v3:
         params: Dict[str, jnp.ndarray],
         n: int,
         nu_prime: float = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """Prediction with a single sample of TP parameters
 
@@ -837,15 +875,17 @@ class TP_v3:
             y_samples: Sampled predictions
         """
         # Get the predictive mean, covariance, and custom degrees of freedom
-        y_mean, cov, df_pred = self.get_mvt_posterior(X_new, params, nu_prime=nu_prime, **kwargs)
+        y_mean, cov, df_pred = self.get_mvt_posterior(
+            X_new, params, nu_prime=nu_prime, **kwargs
+        )
 
         # Compute the Cholesky decomposition of the covariance matrix
         scale_tril = jnp.linalg.cholesky(cov)
 
         # Draw samples from the predictive Multivariate Student-t distribution
-        y_samples = dist.MultivariateStudentT(df=df_pred, loc=y_mean, scale_tril=scale_tril).sample(
-            rng_key, sample_shape=(n,)
-        )
+        y_samples = dist.MultivariateStudentT(
+            df=df_pred, loc=y_mean, scale_tril=scale_tril
+        ).sample(rng_key, sample_shape=(n,))
 
         return y_mean, y_samples
 
@@ -858,7 +898,7 @@ class TP_v3:
         nu_prime: float = None,
         filter_nans: bool = False,
         device: Type[jaxlib.xla_extension.Device] = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Make prediction at X_new points using posterior samples for TP parameters
@@ -885,18 +925,26 @@ class TP_v3:
             samples = jax.device_put(samples, device)
         num_samples = len(next(iter(samples.values())))
         vmap_args = (jra.split(rng_key, num_samples), samples)
-        predictive = jax.vmap(lambda prms: self._predict(prms[0], X_new, prms[1], n, nu_prime=nu_prime, **kwargs))
+        predictive = jax.vmap(
+            lambda prms: self._predict(
+                prms[0], X_new, prms[1], n, nu_prime=nu_prime, **kwargs
+            )
+        )
         y_means, y_sampled = predictive(vmap_args)
         if filter_nans:
 
             def filter_out_nans(y_sample):
-                return jnp.where(jnp.isnan(y_sample).any(), jnp.zeros_like(y_sample), y_sample)
+                return jnp.where(
+                    jnp.isnan(y_sample).any(), jnp.zeros_like(y_sample), y_sample
+                )
 
             y_sampled = jax.vmap(filter_out_nans)(y_sampled)
 
         return y_means.mean(0), y_sampled
 
-    def sample_from_prior(self, rng_key: jnp.ndarray, X: jnp.ndarray, num_samples: int = 10):
+    def sample_from_prior(
+        self, rng_key: jnp.ndarray, X: jnp.ndarray, num_samples: int = 10
+    ):
         """
         Samples from prior predictive distribution at X
         """
@@ -905,7 +953,9 @@ class TP_v3:
         samples = prior_predictive(rng_key, X)
         return samples["y"]
 
-    def _set_data(self, X: jnp.ndarray, y: Optional[jnp.ndarray] = None) -> Union[Tuple[jnp.ndarray], jnp.ndarray]:
+    def _set_data(
+        self, X: jnp.ndarray, y: Optional[jnp.ndarray] = None
+    ) -> Union[Tuple[jnp.ndarray], jnp.ndarray]:
         X = X if X.ndim > 1 else X[:, None]
         if y is not None:
             return X, y.squeeze()
@@ -928,7 +978,6 @@ class TP_v3:
     def _print_summary(self):
         samples = self.get_samples(1)
         numpyro.diagnostics.print_summary(samples)
-
 
 
 # class TP_v1:
@@ -1146,7 +1195,7 @@ class TP_v3:
 #     def get_samples(self, chain_dim: bool = False) -> Dict[str, jnp.ndarray]:
 #         """Get posterior samples (after running the MCMC chains)"""
 #         return self.mcmc.get_samples(group_by_chain=chain_dim)
-    
+
 #     def beta(self, params: Dict[str, jnp.ndarray], K_11_inv: Optional[jnp.ndarray] = None, **kwargs) -> jnp.ndarray:
 #         """
 #         Calculate beta, the residual term used in Student-t process.

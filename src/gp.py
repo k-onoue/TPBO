@@ -21,7 +21,9 @@ from numpyro.infer import MCMC, NUTS, init_to_median, Predictive
 from gpax.kernels import get_kernel
 from gpax.utils import split_in_batches
 
-kernel_fn_type = Callable[[jnp.ndarray, jnp.ndarray, Dict[str, jnp.ndarray], jnp.ndarray], jnp.ndarray]
+kernel_fn_type = Callable[
+    [jnp.ndarray, jnp.ndarray, Dict[str, jnp.ndarray], jnp.ndarray], jnp.ndarray
+]
 
 clear_cache = jax._src.dispatch.xla_primitive_callable.cache_clear
 
@@ -97,7 +99,9 @@ class ExactGP:
         self,
         input_dim: int,
         kernel: Union[str, kernel_fn_type],
-        mean_fn: Optional[Callable[[jnp.ndarray, Dict[str, jnp.ndarray]], jnp.ndarray]] = None,
+        mean_fn: Optional[
+            Callable[[jnp.ndarray, Dict[str, jnp.ndarray]], jnp.ndarray]
+        ] = None,
         kernel_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         mean_fn_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
         noise_prior: Optional[Callable[[], Dict[str, jnp.ndarray]]] = None,
@@ -176,7 +180,7 @@ class ExactGP:
         progress_bar: bool = True,
         print_summary: bool = True,
         device: Type[jaxlib.xla_extension.Device] = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> None:
         """
         Run Hamiltonian Monter Carlo to infer the GP parameters
@@ -236,7 +240,9 @@ class ExactGP:
             length_dist = self.lengthscale_prior_dist
         else:
             length_dist = dist.LogNormal(0.0, 1.0)
-        with numpyro.plate("ard", self.kernel_dim):  # allows using ARD kernel for kernel_dim > 1
+        with numpyro.plate(
+            "ard", self.kernel_dim
+        ):  # allows using ARD kernel for kernel_dim > 1
             length = numpyro.sample("k_length", length_dist)
         if output_scale:
             scale = numpyro.sample("k_scale", dist.LogNormal(0.0, 1.0))
@@ -244,18 +250,22 @@ class ExactGP:
             scale = numpyro.deterministic("k_scale", jnp.array(1.0))
         if self.kernel_name == "Periodic":
             period = numpyro.sample("period", dist.LogNormal(0.0, 1.0))
-        kernel_params = {"k_length": length, "k_scale": scale, "period": period if self.kernel_name == "Periodic" else None}
+        kernel_params = {
+            "k_length": length,
+            "k_scale": scale,
+            "period": period if self.kernel_name == "Periodic" else None,
+        }
         return kernel_params
 
     def get_samples(self, chain_dim: bool = False) -> Dict[str, jnp.ndarray]:
         """Get posterior samples (after running the MCMC chains)"""
         return self.mcmc.get_samples(group_by_chain=chain_dim)
-    
+
     def get_beta(self, **kwargs) -> jnp.ndarray:
         """Calculate beta using the training data."""
         y_train = self.y_train.copy()
         X_train = self.X_train
-        
+
         params = self.get_samples()
         params = {key: jnp.mean(value, axis=0) for key, value in params.items()}
 
@@ -282,7 +292,11 @@ class ExactGP:
         return beta_value
 
     def get_mvn_posterior(
-        self, X_new: jnp.ndarray, params: Dict[str, jnp.ndarray], noiseless: bool = False, **kwargs: float
+        self,
+        X_new: jnp.ndarray,
+        params: Dict[str, jnp.ndarray],
+        noiseless: bool = False,
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Returns parameters (mean and cov) of multivariate normal posterior
@@ -314,13 +328,15 @@ class ExactGP:
         params: Dict[str, jnp.ndarray],
         n: int,
         noiseless: bool = False,
-        **kwargs: float
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """Prediction with a single sample of GP parameters"""
         # Get the predictive mean and covariance
         y_mean, K = self.get_mvn_posterior(X_new, params, noiseless, **kwargs)
         # draw samples from the posterior predictive for a given set of parameters
-        y_sampled = dist.MultivariateNormal(y_mean, K).sample(rng_key, sample_shape=(n,))
+        y_sampled = dist.MultivariateNormal(y_mean, K).sample(
+            rng_key, sample_shape=(n,)
+        )
         return y_mean, y_sampled
 
     def _predict_in_batches(
@@ -335,10 +351,12 @@ class ExactGP:
         predict_fn: Callable[[jnp.ndarray, int], Tuple[jnp.ndarray]] = None,
         noiseless: bool = False,
         device: Type[jaxlib.xla_extension.Device] = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         if predict_fn is None:
-            predict_fn = lambda xi: self.predict(rng_key, xi, samples, n, filter_nans, noiseless, device, **kwargs)
+            predict_fn = lambda xi: self.predict(
+                rng_key, xi, samples, n, filter_nans, noiseless, device, **kwargs
+            )
 
         def predict_batch(Xi):
             out1, out2 = predict_fn(Xi)
@@ -364,7 +382,7 @@ class ExactGP:
         predict_fn: Callable[[jnp.ndarray, int], Tuple[jnp.ndarray]] = None,
         noiseless: bool = False,
         device: Type[jaxlib.xla_extension.Device] = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Make prediction at X_new with sampled GP parameters
@@ -373,7 +391,17 @@ class ExactGP:
         to avoid a memory overflow
         """
         y_pred, y_sampled = self._predict_in_batches(
-            rng_key, X_new, batch_size, 0, samples, n, filter_nans, predict_fn, noiseless, device, **kwargs
+            rng_key,
+            X_new,
+            batch_size,
+            0,
+            samples,
+            n,
+            filter_nans,
+            predict_fn,
+            noiseless,
+            device,
+            **kwargs,
         )
         y_pred = jnp.concatenate(y_pred, 0)
         y_sampled = jnp.concatenate(y_sampled, -1)
@@ -388,7 +416,7 @@ class ExactGP:
         filter_nans: bool = False,
         noiseless: bool = False,
         device: Type[jaxlib.xla_extension.Device] = None,
-        **kwargs: float
+        **kwargs: float,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Make prediction at X_new points using posterior samples for GP parameters
@@ -422,7 +450,9 @@ class ExactGP:
             samples = jax.device_put(samples, device)
         num_samples = len(next(iter(samples.values())))
         vmap_args = (jra.split(rng_key, num_samples), samples)
-        predictive = jax.vmap(lambda prms: self._predict(prms[0], X_new, prms[1], n, noiseless, **kwargs))
+        predictive = jax.vmap(
+            lambda prms: self._predict(prms[0], X_new, prms[1], n, noiseless, **kwargs)
+        )
         y_means, y_sampled = predictive(vmap_args)
         if filter_nans:
             # y_sampled_ = [y_i for y_i in y_sampled if not jnp.isnan(y_i).any()]
@@ -430,13 +460,17 @@ class ExactGP:
 
             # Use JAX-compatible filtering for NaN values
             def filter_out_nans(y_sample):
-                return jnp.where(jnp.isnan(y_sample).any(), jnp.zeros_like(y_sample), y_sample)
-            
+                return jnp.where(
+                    jnp.isnan(y_sample).any(), jnp.zeros_like(y_sample), y_sample
+                )
+
             y_sampled = jax.vmap(filter_out_nans)(y_sampled)
 
         return y_means.mean(0), y_sampled
 
-    def sample_from_prior(self, rng_key: jnp.ndarray, X: jnp.ndarray, num_samples: int = 10):
+    def sample_from_prior(
+        self, rng_key: jnp.ndarray, X: jnp.ndarray, num_samples: int = 10
+    ):
         """
         Samples from prior predictive distribution at X
         """
@@ -445,7 +479,9 @@ class ExactGP:
         samples = prior_predictive(rng_key, X)
         return samples["y"]
 
-    def _set_data(self, X: jnp.ndarray, y: Optional[jnp.ndarray] = None) -> Union[Tuple[jnp.ndarray], jnp.ndarray]:
+    def _set_data(
+        self, X: jnp.ndarray, y: Optional[jnp.ndarray] = None
+    ) -> Union[Tuple[jnp.ndarray], jnp.ndarray]:
         X = X if X.ndim > 1 else X[:, None]
         if y is not None:
             return X, y.squeeze()

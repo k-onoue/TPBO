@@ -54,13 +54,14 @@ class DataTransformer:
         return train_y_standardized * self.y_std + self.y_mean
 
 
-
 # Generate initial data based on Sobol samples
 def generate_initial_data(objective, bounds, n=5, seed=None):
     # Generate Sobol sequences with a given seed
-    sobol = qmc.Sobol(d=len(bounds[0]), seed=seed)  # Pass the seed to the Sobol constructor
+    sobol = qmc.Sobol(
+        d=len(bounds[0]), seed=seed
+    )  # Pass the seed to the Sobol constructor
     initial_x = sobol.random_base2(m=int(np.log2(n)))  # Generate n Sobol points
-    
+
     # Scale Sobol points to the bounds
     initial_x = qmc.scale(initial_x, bounds[0], bounds[1])
 

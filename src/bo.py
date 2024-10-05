@@ -1,17 +1,17 @@
-import jax
 import jax.numpy as jnp
 import numpy as np
 from gpax.acquisition import EI, optimize_acq
+
 # from gpax.models.gp import ExactGP
 from jax import random
 
 from utils_bo import DataTransformer, generate_initial_data
 from gp import ExactGP
 
+
 # Define the objective function
 def objective_function(x):
-    from test_functions import \
-        sinusoidal_synthetic  # Replace with your actual function
+    from test_functions import sinusoidal_synthetic  # Replace with your actual function
 
     return sinusoidal_synthetic(x)
 
@@ -73,15 +73,17 @@ def run_bo(experiment_settings):
             filter_nans=True,
         )
 
-        X_next_normalized = X_next_normalized.reshape(1, search_space.shape[1])  # Ensure shape is (1, search_space.shape[1])
-        
+        X_next_normalized = X_next_normalized.reshape(
+            1, search_space.shape[1]
+        )  # Ensure shape is (1, search_space.shape[1])
+
         print()
-        print(f'x_next_normalized: {X_next_normalized}')
+        print(f"x_next_normalized: {X_next_normalized}")
 
         # Step 3.2: Inverse-transform the input back to original space
         X_next = data_transformer.inverse_normalize(X_next_normalized)
 
-        print(f'x_next: {X_next}')  
+        print(f"x_next: {X_next}")
         print()
 
         # Step 3.3: Evaluate the objective function at the selected point
@@ -92,7 +94,9 @@ def run_bo(experiment_settings):
         y_history = np.vstack((y_history, np.array(y_next)))
 
         # Apply transformations to the updated dataset (for GP model fitting)
-        X_transformed, y_transformed = data_transformer.apply_transformation(X_history, y_history)
+        X_transformed, y_transformed = data_transformer.apply_transformation(
+            X_history, y_history
+        )
 
         # Step 3.5: Re-train the GP model with the updated transformed dataset
         gp_model.fit(rng_key, jnp.array(X_transformed), jnp.array(y_transformed))
@@ -103,10 +107,7 @@ def run_bo(experiment_settings):
     return X_history, y_history
 
 
-
 if __name__ == "__main__":
-
-
     # Example experiment settings
     experiment_settings = {
         "search_space": np.array([[-10], [10]]),  # 1D search space example

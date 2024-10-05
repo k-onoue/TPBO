@@ -2,17 +2,13 @@ import logging
 import warnings
 
 import numpy as np
-from gpax.utils import enable_x64
 
 from _components import run_bo
 from _import_from_src import LOG_DIR
-from _import_from_src import EI_TP, UCB_TP # , POI_TP
-from _import_from_src import ExactGP, TP_v1, TP_v2
-from _import_from_src import SinusoidaSynthetic, BraninHoo, Hartmann6
+from _import_from_src import EI_TP  # , POI_TP
+from _import_from_src import TP_v2
+from _import_from_src import SinusoidaSynthetic
 from _import_from_src import set_logger
-
-
-
 
 
 if __name__ == "__main__":

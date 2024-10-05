@@ -2,17 +2,13 @@ import logging
 import warnings
 
 import numpy as np
-from gpax.acquisition import EI, UCB, POI, optimize_acq
-from gpax.utils import enable_x64, get_keys
+from gpax.acquisition import EI
 
 from _components import run_bo
 from _import_from_src import LOG_DIR
-from _import_from_src import ExactGP, TP_v1, TP_v2
-from _import_from_src import SinusoidaSynthetic, BraninHoo, Hartmann6
+from _import_from_src import ExactGP
+from _import_from_src import Hartmann6
 from _import_from_src import set_logger
-
-
-
 
 
 if __name__ == "__main__":

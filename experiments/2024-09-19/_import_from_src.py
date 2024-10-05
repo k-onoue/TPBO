@@ -9,7 +9,7 @@ PROJECT_DIR = config["paths"]["project_dir"]
 LOG_DIR = config["paths"]["logs_dir"]
 sys.path.append(PROJECT_DIR)
 
-from src.acquisition import EI_TP, UCB_TP # , POI_TP
+from src.acquisition import EI_TP, UCB_TP  # , POI_TP
 from src.gp import ExactGP
 from src.tp import TP_v1, TP_v2
 from src.test_functions import SinusoidaSynthetic, BraninHoo, Hartmann6

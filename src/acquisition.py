@@ -17,20 +17,29 @@ from gpax.acquisition.optimize import ensure_array
 from .tp import TP_v2 as TP
 
 
-
 def _compute_mean_and_var_tp(
-    rng_key: jnp.ndarray, model: Type[TP], X: jnp.ndarray, n: int, noiseless: bool, nu_prime: Optional[float] = None, **kwargs
+    rng_key: jnp.ndarray,
+    model: Type[TP],
+    X: jnp.ndarray,
+    n: int,
+    noiseless: bool,
+    nu_prime: Optional[float] = None,
+    **kwargs,
 ) -> Tuple[jnp.ndarray, jnp.ndarray, float]:
     """
     Computes predictive mean, variance, and degrees of freedom for Student-t process with optional nu_prime.
     """
     if model.mcmc is not None:
-        _, y_sampled = model.predict(rng_key, X, n=n, noiseless=noiseless, nu_prime=nu_prime, **kwargs)
+        _, y_sampled = model.predict(
+            rng_key, X, n=n, noiseless=noiseless, nu_prime=nu_prime, **kwargs
+        )
         y_sampled = y_sampled.reshape(n * y_sampled.shape[0], -1)
         mean, var = y_sampled.mean(0), y_sampled.var(0)
         df = model.get_samples()["df"].mean()  # Get the mean degrees of freedom
     else:
-        mean, var, df = model.get_mvt_posterior(X, model.get_samples(chain_dim=False), nu_prime=nu_prime, **kwargs)
+        mean, var, df = model.get_mvt_posterior(
+            X, model.get_samples(chain_dim=False), nu_prime=nu_prime, **kwargs
+        )
 
     return mean, var, df
 
@@ -48,7 +57,7 @@ def UCB_TP(
     recent_points: jnp.ndarray = None,
     grid_indices: jnp.ndarray = None,
     penalty_factor: float = 1.0,
-    **kwargs
+    **kwargs,
 ) -> jnp.ndarray:
     r"""
     Upper confidence bound for Student-t Process with optional nu_prime.
@@ -93,10 +102,15 @@ def UCB_TP(
     X = X[:, None] if X.ndim < 2 else X
 
     # Compute predictive mean and variance (moments) for the Student-t process
-    mean, var, df = _compute_mean_and_var_tp(rng_key, model, X, n, noiseless, nu_prime=nu_prime, **kwargs)
+    mean, var, df = _compute_mean_and_var_tp(
+        rng_key, model, X, n, noiseless, nu_prime=nu_prime, **kwargs
+    )
 
     def ucb_tp(
-        moments: Tuple[jnp.ndarray, jnp.ndarray], beta: float, df: float, maximize: bool = False
+        moments: Tuple[jnp.ndarray, jnp.ndarray],
+        beta: float,
+        df: float,
+        maximize: bool = False,
     ) -> jnp.ndarray:
         """
         Inner function for computing UCB with Student-t Process adjustments
@@ -135,7 +149,9 @@ def UCB_TP(
     acq = ucb_tp((mean, var), beta, df, maximize)
 
     if penalty:
-        acq -= _compute_penalties(X, recent_points, penalty, penalty_factor, grid_indices)
+        acq -= _compute_penalties(
+            X, recent_points, penalty, penalty_factor, grid_indices
+        )
 
     return acq
 
@@ -153,7 +169,7 @@ def EI_TP(
     recent_points: jnp.ndarray = None,
     grid_indices: jnp.ndarray = None,
     penalty_factor: float = 1.0,
-    **kwargs
+    **kwargs,
 ) -> jnp.ndarray:
     r"""
     Student-t Process Expected Improvement (EI) with optional nu_prime.
@@ -185,10 +201,15 @@ def EI_TP(
     X = X[:, None] if X.ndim < 2 else X
 
     # Compute predictive mean, variance, and degrees of freedom from the TP model
-    mean, var, df = _compute_mean_and_var_tp(rng_key, model, X, n, noiseless, nu_prime=nu_prime, **kwargs)
+    mean, var, df = _compute_mean_and_var_tp(
+        rng_key, model, X, n, noiseless, nu_prime=nu_prime, **kwargs
+    )
 
     def ei_tp(
-        moments: Tuple[jnp.ndarray, jnp.ndarray, float], best_f: float = None, maximize: bool = False, **kwargs
+        moments: Tuple[jnp.ndarray, jnp.ndarray, float],
+        best_f: float = None,
+        maximize: bool = False,
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Inner function for computing Expected Improvement (EI) for a Student-t Process
@@ -226,7 +247,9 @@ def EI_TP(
         Phi_s = student_t.cdf(z)  # CDF
 
         # Compute EI using the Student-t process formula
-        ei_value = (best_f - mean) * Phi_s + (df / (df - 1)) * (1 + (z**2) / df) * sigma * phi_s
+        ei_value = (best_f - mean) * Phi_s + (df / (df - 1)) * (
+            1 + (z**2) / df
+        ) * sigma * phi_s
 
         return ei_value
 
@@ -234,7 +257,9 @@ def EI_TP(
     acq = ei_tp((mean, var, df), best_f, maximize)
 
     if penalty:
-        acq -= _compute_penalties(X, recent_points, penalty, penalty_factor, grid_indices)
+        acq -= _compute_penalties(
+            X, recent_points, penalty, penalty_factor, grid_indices
+        )
 
     return acq
 
@@ -253,7 +278,7 @@ def POI_TP(
     recent_points: jnp.ndarray = None,
     grid_indices: jnp.ndarray = None,
     penalty_factor: float = 1.0,
-    **kwargs
+    **kwargs,
 ) -> jnp.ndarray:
     r"""
     Student-t Process Probability of Improvement (POI) with optional nu_prime.
@@ -286,7 +311,9 @@ def POI_TP(
     X = X[:, None] if X.ndim < 2 else X
 
     # Compute predictive mean, variance, and degrees of freedom from the TP model
-    mean, var, df = _compute_mean_and_var_tp(rng_key, model, X, n, noiseless, nu_prime=nu_prime, **kwargs)
+    mean, var, df = _compute_mean_and_var_tp(
+        rng_key, model, X, n, noiseless, nu_prime=nu_prime, **kwargs
+    )
 
     # Inner function for Student-t Process POI
     def poi_tp(
@@ -294,7 +321,7 @@ def POI_TP(
         best_f: float = None,
         xi: float = 0.01,
         maximize: bool = False,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Student-t Process Probability of Improvement (PI)
@@ -335,19 +362,23 @@ def POI_TP(
     acq = poi_tp((mean, var, df), best_f, xi, maximize)
 
     if penalty:
-        acq -= _compute_penalties(X, recent_points, penalty, penalty_factor, grid_indices)
+        acq -= _compute_penalties(
+            X, recent_points, penalty, penalty_factor, grid_indices
+        )
 
     return acq
 
 
-def optimize_acq(rng_key: jnp.ndarray,
-                 model: Type[TP],
-                 acq_fn: Callable,
-                 num_initial_guesses: int,
-                 lower_bound: Union[List, Tuple, float, onp.ndarray, jnp.ndarray],
-                 upper_bound: Union[List, Tuple, float, onp.ndarray, jnp.ndarray],
-                 nu_prime: Optional[float] = None,  # Added nu_prime here
-                 **kwargs) -> jnp.ndarray:
+def optimize_acq(
+    rng_key: jnp.ndarray,
+    model: Type[TP],
+    acq_fn: Callable,
+    num_initial_guesses: int,
+    lower_bound: Union[List, Tuple, float, onp.ndarray, jnp.ndarray],
+    upper_bound: Union[List, Tuple, float, onp.ndarray, jnp.ndarray],
+    nu_prime: Optional[float] = None,  # Added nu_prime here
+    **kwargs,
+) -> jnp.ndarray:
     """
     Optimizes an acquisition function for a given Gaussian Process model using the JAXopt library.
 
@@ -397,26 +428,33 @@ def optimize_acq(rng_key: jnp.ndarray,
         x = jnp.array([x])
         x = x[None] if x.ndim == 0 else x
         # Pass nu_prime to acq_fn if provided
-        obj = -acq_fn(rng_key, model, x, nu_prime=nu_prime, **kwargs) if nu_prime else -acq_fn(rng_key, model, x, **kwargs)
+        obj = (
+            -acq_fn(rng_key, model, x, nu_prime=nu_prime, **kwargs)
+            if nu_prime
+            else -acq_fn(rng_key, model, x, **kwargs)
+        )
         return jnp.reshape(obj, ())
 
     lower_bound = ensure_array(lower_bound)
     upper_bound = ensure_array(upper_bound)
 
     initial_guesses = jra.uniform(
-        rng_key, shape=(num_initial_guesses, lower_bound.shape[0]),
-        minval=lower_bound, maxval=upper_bound)
-    initial_acq_vals = acq_fn(rng_key, model, initial_guesses, nu_prime=nu_prime, **kwargs) if nu_prime else acq_fn(rng_key, model, initial_guesses, **kwargs)
+        rng_key,
+        shape=(num_initial_guesses, lower_bound.shape[0]),
+        minval=lower_bound,
+        maxval=upper_bound,
+    )
+    initial_acq_vals = (
+        acq_fn(rng_key, model, initial_guesses, nu_prime=nu_prime, **kwargs)
+        if nu_prime
+        else acq_fn(rng_key, model, initial_guesses, **kwargs)
+    )
     best_initial_guess = initial_guesses[initial_acq_vals.argmax()].squeeze()
 
-    minimizer = jaxopt.ScipyBoundedMinimize(fun=acq, method='l-bfgs-b')
+    minimizer = jaxopt.ScipyBoundedMinimize(fun=acq, method="l-bfgs-b")
     result = minimizer.run(best_initial_guess, bounds=(lower_bound, upper_bound))
 
     return result.params
-
-
-
-
 
 
 # """

@@ -7,6 +7,7 @@ import numpy as np
 
 #     return negated_func
 
+
 def add_noise(func, strength=1):
     def noisy_func(x):
         return func(x) + strength * np.random.normal(0, 1)
@@ -15,7 +16,7 @@ def add_noise(func, strength=1):
 
 
 class AddNoise:
-    def __init__(self, func, strength=1, noise_type='normal', df=1):
+    def __init__(self, func, strength=1, noise_type="normal", df=1):
         """
         Parameters:
         - func: 元の関数
@@ -29,17 +30,19 @@ class AddNoise:
         self.df = df  # t分布の自由度
 
     def __call__(self, x):
-        if self.noise_type == 'normal':
+        if self.noise_type == "normal":
             noise = np.random.normal(0, 1)
-        elif self.noise_type == 't':
+        elif self.noise_type == "t":
             if self.df is None:
                 raise ValueError("t分布を使用する場合、自由度 df を指定してください")
             noise = np.random.standard_t(self.df)
-        elif self.noise_type == 'uniform':
+        elif self.noise_type == "uniform":
             noise = np.random.uniform(-1, 1)
         else:
-            raise ValueError("サポートされていないノイズタイプです: {}".format(self.noise_type))
-        
+            raise ValueError(
+                "サポートされていないノイズタイプです: {}".format(self.noise_type)
+            )
+
         return self.func(x) + self.strength * noise
 
 
@@ -56,6 +59,7 @@ class SinusoidalSynthetic:
 
     f(x) = -(x-1)^2 \sin(3x + 5/x + 1)
     """
+
     def __init__(self):
         self.search_space = np.array([[5], [10]])
         self.is_maximize = False
@@ -74,11 +78,11 @@ class SinusoidalSynthetic:
             raise ValueError("Input must be of shape (N,) or (N, 1)")
 
         # Compute the function
-        term1 = -(x - 1) ** 2
+        term1 = -((x - 1) ** 2)
         term2 = np.sin(3 * x + 5 / x + 1)
         val = term1 * term2
         return val
-    
+
 
 class BraninHoo:
     r"""
@@ -94,11 +98,12 @@ class BraninHoo:
     Raises:
         ValueError: If the input array is not two-dimensional or does not have exactly 2 features per data point.
     """
+
     def __init__(self):
-        self.search_space = np.array([[0, -5], [15, 15]]) 
+        self.search_space = np.array([[0, -5], [15, 15]])
         self.is_maximize = False
         self.min_f = 0.397887
-    
+
     def __call__(self, x: np.ndarray) -> np.ndarray:
         if x.ndim != 2 or x.shape[1] != 2:
             raise ValueError(
@@ -119,7 +124,7 @@ class BraninHoo:
         val = (term1 + term2 + 10).reshape(-1, 1)
 
         return val
-        
+
 
 class Hartmann6:
     r"""
@@ -135,11 +140,12 @@ class Hartmann6:
     Raises:
         ValueError: If the input array is not two-dimensional or does not have exactly 6 features per data point.
     """
+
     def __init__(self):
         self.search_space = np.array([[0] * 6, [1] * 6])
         self.is_maximize = False
         self.min_f = -3.32237
-    
+
     def __call__(self, x: np.ndarray) -> np.ndarray:
         if x.ndim != 2 or x.shape[1] != 6:
             raise ValueError(

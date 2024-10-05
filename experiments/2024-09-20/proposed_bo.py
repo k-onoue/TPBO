@@ -11,7 +11,6 @@ from _import_from_src import SinusoidaSynthetic, BraninHoo, Hartmann6
 from _import_from_src import UCB_TP, POI_TP, EI_TP
 
 
-
 objective_dict = {
     "SinusoidaSynthetic": SinusoidaSynthetic,
     "BraninHoo": BraninHoo,

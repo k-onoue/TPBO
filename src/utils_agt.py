@@ -31,10 +31,10 @@ def get_agt_surrogate(tp_model: Type[TP_v2]) -> Union[Type[ExactGP], Type[TP_v2]
         )
 
         gp_model.X_train = X_train
-        gp_model.y_train = tp_model.y_train 
+        gp_model.y_train = tp_model.y_train
 
         gp_model.mcmc = tp_model.mcmc
 
-        return gp_model, None # nu_prime 
+        return gp_model, None  # nu_prime
     else:
-        return tp_model, 2.0 # nu_prime 
+        return tp_model, 2.0  # nu_prime

@@ -44,14 +44,20 @@ def run_bo(experiment_settings):
     data_transformer = DataTransformer(search_space, surrogate_settings)
 
     # Step 1: Generate initial data using Sobol sequences
-    X_init, y_init = generate_initial_data(objective_function, search_space, n=initial_sample_size)
+    X_init, y_init = generate_initial_data(
+        objective_function, search_space, n=initial_sample_size
+    )
     for x, y in zip(X_init, y_init):
         logging.info(f"X initial: {x}")
         logging.info(f"y initial: {y}")
 
     # Normalize the search space bounds
-    lb_normalized = data_transformer.normalize(search_space[0].reshape(1, search_space.shape[1]))
-    ub_normalized = data_transformer.normalize(search_space[1].reshape(1, search_space.shape[1]))
+    lb_normalized = data_transformer.normalize(
+        search_space[0].reshape(1, search_space.shape[1])
+    )
+    ub_normalized = data_transformer.normalize(
+        search_space[1].reshape(1, search_space.shape[1])
+    )
 
     # Initialize history with the original (non-transformed) initial data
     X_history = X_init
@@ -65,8 +71,7 @@ def run_bo(experiment_settings):
 
     # Initialize the GP model with kernel and noise priors
     surrogate_model = ExactGP(
-        input_dim=search_space.shape[1],
-        kernel=surrogate_settings["kernel"]
+        input_dim=search_space.shape[1], kernel=surrogate_settings["kernel"]
     )
     surrogate_model.fit(rng_key_1, jnp.array(X_normalized), jnp.array(y_standardized))
 
@@ -104,10 +109,14 @@ def run_bo(experiment_settings):
         y_history = np.vstack((y_history, np.array(y_next)))
 
         # Apply transformations to the updated dataset (for GP model fitting)
-        X_transformed, y_transformed = data_transformer.apply_transformation(X_history, y_history)
+        X_transformed, y_transformed = data_transformer.apply_transformation(
+            X_history, y_history
+        )
 
         # Step 3.5: Re-train the GP model with the updated transformed dataset
-        surrogate_model.fit(rng_key_1, jnp.array(X_transformed), jnp.array(y_transformed))
+        surrogate_model.fit(
+            rng_key_1, jnp.array(X_transformed), jnp.array(y_transformed)
+        )
 
     logging.info("Completed BO loop.")
     return X_history, y_history
